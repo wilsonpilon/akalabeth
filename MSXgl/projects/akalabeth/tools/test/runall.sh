@@ -1,0 +1,12 @@
+#!/bin/bash
+SP=/d/temp/user/claude/E--akalabeth/4b906f04-2e13-4ac8-afe1-1fc63e17fd4d/scratchpad
+H=/e/akalabeth/MSXgl/projects/akalabeth/akalabeth.h
+for pair in "5 scenM1" "6 scenM2" "7 scenM3"; do
+  set -- $pair
+  sed -i -E "s/#define AK_DEBUG\t\t[0-9]+/#define AK_DEBUG\t\t$1/" $H
+  (cd /e/akalabeth/MSXgl/projects/akalabeth && bash build.sh 2>&1 | grep -i "error\|undefined" | grep -v DSK)
+  cd $SP && ./mkkw.sh >/dev/null && cp /e/akalabeth/MSXgl/projects/akalabeth/out/akalabeth.com dos2/AKA.COM
+  powershell -NoProfile -ExecutionPolicy Bypass -File run.ps1 -Scn $2 -Disk dos2 -Ext msxdos2 | tail -n +3
+done
+sed -i -E "s/#define AK_DEBUG\t\t[0-9]+/#define AK_DEBUG\t\t0/" $H
+echo runall-done

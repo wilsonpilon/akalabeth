@@ -1,0 +1,23 @@
+# --- MSXgl é dependência externa: versionamos só o nosso projeto dentro dele ---
+/MSXgl/*
+!/MSXgl/projects/
+/MSXgl/projects/*
+!/MSXgl/projects/akalabeth/
+/MSXgl/projects/akalabeth/out/
+/MSXgl/projects/akalabeth/emul/
+/MSXgl/projects/akalabeth/*.log
+
+# --- ferramentas e arquivos de terceiros / pessoais ---
+/msxdisk.exe
+/basic.bas
+/resume.txt
+/images/
+
+# --- saídas de build e pacotes (vão como anexo da release do GitHub) ---
+/dist/
+/release/
+
+# --- lixo do sistema/editor ---
+Thumbs.db
+.DS_Store
+*.tmp
