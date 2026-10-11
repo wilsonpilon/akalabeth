@@ -99,15 +99,7 @@ for (let i = 0; i < flat.length; i += 6)
 o += '};\n';
 o += 'const u16 g_ShapeStart[11] = { ' + idx.join(', ') + ' };\n\n';
 
-// divisao 8.8: DIV88[DI-1][a+96] = round(a*256/DI)
-o += '// a*256/DI para a em [-96,95] e DI em [1,9]\n';
-o += 'const i16 g_Div88[9][192] = {\n';
-for (let d = 1; d <= 9; d++) {
-  const row = [];
-  for (let a = -96; a < 96; a++) row.push(Math.round(a * 256 / d));
-  o += '\t{' + row.join(',') + '},\n';
-}
-o += '};\n\n';
+// (a divisao 8.8 round(a*256/DI) e calculada em gfx.c: a tabela custava 3,4 KB de RAM do programa)
 
 // ---- 3. perspectiva (linhas 50-62), reparametrizada p/ 256 px ------------
 const W = 256, CX = 127, CY = 79;

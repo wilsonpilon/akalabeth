@@ -3,7 +3,7 @@
 //*****************************************************************************
 ProjName   = "akalabeth";
 ProjModules = [ "ramstore", ProjName, "gfx", "ui" ];
-LibModules = [ "system", "bios", "vdp", "print", "input", "memory", "draw", "math", "dos", "dos_mapper", "string", "psg" ];
+LibModules = [ "system", "bios", "vdp", "dos", "dos_mapper" ];
 Machine    = "2";
 Target     = "DOS2";
 DOSParseArg = false;

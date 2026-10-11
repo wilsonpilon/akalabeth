@@ -310,7 +310,7 @@ static void intro_screen(void)
 	gfx_text_c(38, "WORLD OF DOOM", C_CREAM, C_BLACK);
 	gfx_text_c(200, "PRESS ANY KEY", C_CREAM, C_BLACK);
 	fade_in();
-	ui_getkey();
+	if (ui_getkey() == 9) { g_cheat = TRUE; ui_beep(SFX_SELECT); }
 }
 
 typedef struct { const c8* t; u8 c; } HelpLine;
@@ -954,6 +954,49 @@ static void change_level(i8 delta)
 	s_fade = TRUE;
 }
 
+//-----------------------------------------------------------------------------
+// Test cheats: [SELECT] + letter, enabled by starting the game with TAB. Not documented for players.
+bool g_cheat = FALSE;
+static u8 g_cx, g_cy;
+
+static u8 cheat_key(bool dungeon)
+{
+	con_putsn("CHEAT> ", C_GRASS);
+	u8 k = ui_getkey_upper();
+	u8 w = 0;
+	if (k == 'F') { if (g_inv[0] + 1000 <= FOOD_MAX) g_inv[0] += 1000; }
+	else if (k == 'G') g_stat[ST_GOLD] += 100;
+	else if (k == 'H') g_stat[ST_HP] += 50;
+	else if (dungeon) { if (k == 'U' || k == 'D' || k == 'M' || k == 'P' || k == 'T' || k == 'E') { gfx_cheat_map(k); w = 1; } }
+	else
+	{
+		for (u8 x = 1; x < MAPW - 1; x++)
+			for (u8 y = 1; y < MAPW - 1; y++)
+			{
+				u8 t = g_te[x][y];
+				if (k == 'M' || (k == 'C' && t == T_CASTLE) || (k == 'D' && t == T_DUNGEON) || (k == 'N' && t == T_TOWN))
+				{
+					g_seen[x][y] = 1; w = 1;
+					if (k == 'C') { g_cx = x; g_cy = y; }
+				}
+			}
+	}
+	if (!w && k != 'F' && k != 'G' && k != 'H') { con_puts("?", C_RED); return 0; }
+	s_fade = FALSE;
+	draw_scene();
+	if (k == 'C')
+	{
+		c8 b[20]; u8 n = 0;
+		const c8* t = "CASTLE AT ";
+		for (; t[n]; n++) b[n] = t[n];
+		n += num2s(g_cx, b + n); b[n++] = ','; n += num2s(g_cy, b + n);
+		con_puts(b, C_GOLD);
+		ui_pause_key("-CR- TO CONT. ");
+	}
+	else { ui_beep(SFX_SELECT); hud_update(); }
+	return 0;
+}
+
 static bool cmd_forward(void)
 {
 	con_puts("FORWARD", C_WHITE);
@@ -1131,22 +1174,8 @@ static u8 do_command(u8 k)
 		s_pause = !s_pause;
 		con_puts(s_pause ? "PAUSE ON" : "PAUSE OFF", C_WHITE);
 		return 0;
-	case 'C': case 'c':								// cheat (testing): reveal the castle on the minimap
-		if (dungeon) { con_puts("HUH?", C_RED); return 0; }
-		for (u8 x = 1; x < MAPW - 1; x++)
-			for (u8 y = 1; y < MAPW - 1; y++)
-				if (g_te[x][y] == T_CASTLE)
-				{
-					g_seen[x][y] = 1;
-					draw_scene();
-					c8 b[20]; u8 n = 0;
-					const c8* t = "CASTLE AT ";
-					for (; t[n]; n++) b[n] = t[n];
-					n += num2s(x, b + n); b[n++] = ','; n += num2s(y, b + n);
-					con_puts(b, C_GOLD);
-					ui_pause_key("-CR- TO CONT. ");
-					return 0;
-				}
+	case 24:										// SELECT: cheat prefix (only when enabled with TAB on the title screen)
+		if (g_cheat) return cheat_key(dungeon);
 		return 0;
 	case 'H': case 'h': case '?':
 		help_screen();
@@ -1290,6 +1319,7 @@ again:
 	{
 		u8 k = ui_getkey();
 		if (k == 'H' || k == 'h') { help_screen(); goto again; }
+		if (k == 9) { g_cheat = TRUE; ui_beep(SFX_SELECT); }
 		if (k != 'L' && k != 'l') break;
 		u8 r = load_game();
 		if (r == 0) { s_fade = TRUE; return TRUE; }
@@ -1428,6 +1458,10 @@ static void create_character(void)
 //=============================================================================
 void main()
 {
+	g_cheat = FALSE; g_cheatMap = 0;						// DOS does not clear RAM: globals without initialiser hold garbage
+#if (AK_DEBUG > 0)
+	g_cheat = TRUE;									// debug builds: cheats always on
+#endif
 	gfx_init();
 	ui_init();
 	assets_load();

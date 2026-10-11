@@ -504,19 +504,26 @@ static void draw_chest(u8 k, u8 col)
 	if (k < 4) gfx_rect(c - 1, yb - d - 1, 3, 3, C_GOLD);		// lock
 }
 
+// round(a * 256 / k): 8.8 perspective division (computed instead of tabulated to save 3.4 KB)
+static i16 div88(i8 a, u8 k)
+{
+	i16 n = (i16)a * 256;
+	if (n >= 0) return (n + (k >> 1)) / k;
+	return -((-n + (k >> 1)) / k);
+}
+
 static void draw_shape(u8 mc, u8 k, u8 col, i8 offs)
 {
-	const i16* div = g_Div88[k - 1];
 	i16 C = VIEW_CX + offs, B = VIEW_CY + g_YY[k] + offs, ytop = VIEW_CY - g_YY[k] + offs;
 	i16 cx = 0, cy = 0;
 	u16 a = g_ShapeStart[mc - 1], e = g_ShapeStart[mc];
 	for (; a < e; a++)
 	{
 		const ShapePt* p = &g_Shapes[a];
-		i16 vx = div[p->x + 96];
+		i16 vx = div88(p->x, k);
 		if (p->op & SH_HALF) vx += 128;
 		i16 x = C + ((vx + 128) >> 8);
-		i16 y = (p->op & SH_TOP) ? ytop : B - ((div[p->y + 96] + 128) >> 8);
+		i16 y = (p->op & SH_TOP) ? ytop : B - ((div88(p->y, k) + 128) >> 8);
 		u8 op = p->op & 3;
 		if (op == SH_LINE) gfx_line(cx, cy, x, y, col);
 		else if (op == SH_DOT) gfx_rect(x, y, 1, 1, col);
@@ -539,11 +546,15 @@ bool g_dmapon = true;
 static u8 s_dtype[DUNW][DUNW];
 #define DMAP_IY		470
 
+u8 g_cheatMap;									// test cheats: bit0 secret doors, bit1 traps, bit2 monsters (see gfx_cheat_map)
+
 static void dmap_cell(u8 x, u8 y, u8 t)
 {
 	u8 c;
+	if (t == 3 && (g_cheatMap & 1)) t = 4;		// secret door shown as a door
 	switch (t)
 	{
+	case 2:         c = (g_cheatMap & 2) ? C_RED : C_ST4; break;	// trap (hidden unless cheating)
 	case 1: case 3: c = C_ST1; break;			// walls (secret doors look like walls)
 	case 4:         c = C_WOOD; break;			// door
 	case 5:         c = C_GOLD; break;			// chest
@@ -569,6 +580,22 @@ void gfx_dmap_reset(void)
 {
 	for (u8 x = 0; x < DUNW; x++) for (u8 y = 0; y < DUNW; y++) { g_dseen[x][y] = 0; s_dtype[x][y] = 0; }
 	VDP_CommandLMMV(0, DMAP_IY, 34, 33, 0, VDP_OP_IMP);
+}
+
+// Test cheat (dungeon): U/D = ladders up/down, M = whole map, P/T/E = toggle secret doors / traps / monsters
+void gfx_cheat_map(u8 k)
+{
+	if (k == 'P') g_cheatMap ^= 1;
+	if (k == 'T') g_cheatMap ^= 2;
+	if (k == 'E') g_cheatMap ^= 4;
+	for (u8 x = 0; x < DUNW; x++)
+		for (u8 y = 0; y < DUNW; y++)
+		{
+			u8 t = g_dn[x][y] % 10;
+			if ((k == 'U' && t == 8) || (k == 'D' && (t == 7 || t == 9)) || k == 'M'
+				|| (k == 'P' && t == 3) || (k == 'T' && t == 2)) g_dseen[x][y] = 1;
+		}
+	gfx_dmap_rebuild();
 }
 
 void gfx_dmap_rebuild(void)
@@ -647,6 +674,10 @@ void gfx_draw_dungeon(void)
 		VDP_CommandHMMM(0, DMAP_IY, 218, g_oy + 3, 34, 33);
 		for (u8 i = 0; i < g_visn; i++)
 			gfx_rect(218 + s_monx[i] * 3, 3 + s_mony[i] * 3, 3, 3, C_RED);
+		if (g_cheatMap & 4)
+			for (u8 x = 0; x < DUNW; x++)
+				for (u8 y = 0; y < DUNW; y++)
+					if (g_dn[x][y] >= 10) gfx_rect(218 + x * 3, 3 + y * 3, 3, 3, C_RED);
 		gfx_rect(218 + g_px * 3, 3 + g_py * 3, 3, 3, C_WHITE);
 		gfx_rect(219 + g_px * 3 + g_dx, 4 + g_py * 3 + g_dy, 1, 1, C_RED);
 	}

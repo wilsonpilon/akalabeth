@@ -117,6 +117,9 @@ void gfx_restore_palette(void);
 void gfx_flicker(u8 phase);
 void gfx_dmap_reset(void);
 void gfx_dmap_rebuild(void);
+void gfx_cheat_map(u8 k);
+extern u8 g_cheatMap;
+extern bool g_cheat;						// test cheats enabled (TAB on the title screen)
 extern u8 g_dseen[DUNW][DUNW];
 extern bool g_dmapon;
 void gfx_set_palette_fade(u8 level);					// 0..7, 7 = normal

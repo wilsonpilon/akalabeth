@@ -5,10 +5,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em 
 ## [0.4.1] — não lançada
 
 ### Removido
+- **Tabela `g_Div88`** (3,4 KB): a divisão em ponto fixo 8.8 das perspectivas dos monstros agora é calculada. Libera memória do programa (margem de pilha de ~0,9 KB para ~3,4 KB).
 - **Suporte a joystick.** O jogo é só de teclado. Sem o polling da BIOS (`GTSTCK`/`GTTRIG`) a cada quadro, some a flag `g_psgBusy` (que fazia a interrupção pular ticks da música), o laço de espera fica mais leve e o programa encolhe ~330 bytes (mais memória livre). `INPUT_USE_JOYSTICK` desligado no `msxgl_config.h`.
 
 ### Adicionado
-- **Cheat de teste:** a tecla `C` no mundo revela o castelo no minimapa e mostra suas coordenadas (`CASTLE AT x,y`). Não consta do manual do jogador.
+- **Cheats de teste** (ver `docs/OUTLINE.md`; não constam do manual): habilitados só ao iniciar o jogo com `TAB` na abertura/título, e usados com `SELECT` + letra.
 
 ### Corrigido
 - A cidade inicial podia substituir o castelo (1 chance em 361): agora é sorteada de novo se cair nele. Mapas existentes não mudam.

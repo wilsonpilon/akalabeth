@@ -27,7 +27,10 @@ proc runner {} {
             set r {}; for {set i 0} {$i < 11} {incr i} { lappend r [format %02X [debug read "PSG regs" $i]] }
             puts $f "[lindex $s 1] emu=[format %.2f [machine_info time]] ticks=[expr {[peek $::TK] + 256*[peek [expr {$::TK+1}]]}] psg=$r draw=[expr {[peek $::DT] + 256*[peek [expr {$::DT+1}]]}] prof=[prof]"; close $f; runner }
     tim   { set f [open "D:/temp/user/claude/E--akalabeth/4b906f04-2e13-4ac8-afe1-1fc63e17fd4d/scratchpad/steps.log" a]
-            puts $f "[lindex $s 1]: turn=[expr {[peek $::TT] + 256*[peek [expr {$::TT+1}]]}] draw=[expr {[peek $::DT] + 256*[peek [expr {$::DT+1}]]}] hud=[expr {[peek $::HT] + 256*[peek [expr {$::HT+1}]]}] frames"; close $f; runner }
+            puts $f "[lindex $s 1]: turn=[expr {[peek $::TT] + 256*[peek [expr {$::TT+1}]]}] draw=[expr {[peek $::DT] + 256*[peek [expr {$::DT+1}]]}] hud=[expr {[peek $::HT] + 256*[peek [expr {$::HT+1}]]}] frames parts=[parts]"; close $f; runner }
+    pl2   { probe [lindex $s 1]; runner }
+    mx    { keymatrixdown [lindex $s 1] [lindex $s 2]; after time 0.15 "keymatrixup [lindex $s 1] [lindex $s 2]"; after time 0.7 runner }
+    ty    { type [lindex $s 1]; after time 1.0 runner }
     until { wait_cnt [lindex $s 1] [machine_info time] }
     pl { pl; runner }
     settle { settle_wait 0 [machine_info time] }
@@ -45,7 +48,7 @@ proc start_steps {} { after time 0.5 runner }
 proc prof {} { set r {}; for {set i 0} {$i < 5} {incr i} { lappend r [expr {[peek [expr {$::PR+2*$i}]] + 256*[peek [expr {$::PR+2*$i+1}]]}] }; return $r }
 set ::pcs {}
 proc sampler {} {
-  if {[llength $::pcs] >= 1200} { return }
+  if {[llength $::pcs] >= 1500} { return }
   lappend ::pcs [reg PC]
   after time 0.0041 sampler
 }
@@ -68,3 +71,5 @@ proc settle_wait {n t0} {
 proc wait_cnt {v t0} {
   if {[cnt] == $v || ([machine_info time] - $t0) > 40} { after time 0.3 runner } else { after time 0.1 [list wait_cnt $v $t0] }
 }
+
+proc parts {} { set r {}; for {set i 0} {$i < 4} {incr i} { lappend r [expr {[peek [expr {$::TP+2*$i}]] + 256*[peek [expr {$::TP+2*$i+1}]]}] }; return $r }

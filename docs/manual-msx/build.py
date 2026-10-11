@@ -216,15 +216,21 @@ P[8] = page(8, f'''
 P[9] = page(9, f'''
 <h1>A masmorra</h1>
 <p>Vista em primeira pessoa. No canto superior direito o <b>minimapa</b> mostra só o que você já viu. O painel de baixo traz as mensagens e, à direita, <b>FOOD</b>, <b>H.P.</b>, <b>GOLD</b>, <b>LEVEL</b> (andar) e <b>FACING</b> (direção).</p>
-{shot('dungeon', 'Corredor da masmorra, com o minimapa no canto.', 76)}
+{shot('dungeon', 'Corredor da masmorra, com o minimapa no canto.', 50)}
 <div class="legend" style="margin-top:2mm">
-<div class="ic">{A.icon_ladder()}</div><div><b>Escada</b> — <span class="key">ENTER</span> sobe ou desce. No andar 1, a escada para cima <i>sai</i> da masmorra.</div>
-<div class="ic">{A.icon_hole()}</div><div><b>Buraco</b> no chão — <span class="key">ENTER</span> desce um andar.</div>
+<div class="ic">{A.icon_ladder()}</div><div><b>Escada</b> — <span class="key">ENTER</span> sobe ou desce, para qualquer classe. No andar 1, a escada para cima <i>sai</i> da masmorra.</div>
+<div class="ic">{A.icon_hole()}</div><div><b>Buraco</b> no chão — <b>não derruba</b>: você pode passar por cima. Só desce se apertar <span class="key">ENTER</span> em cima dele.</div>
 <div class="ic">{A.icon_chest()}</div><div><b>Baú</b> — ouro e um item aleatório. Cuidado: o <b>mímico</b> também parece um baú!</div>
 </div>
 <ul style="margin-top:1.6mm"><li><b>Portas</b> e <b>portas secretas</b> (parecem parede) podem ser atravessadas.</li>
-<li><b>Armadilhas</b> são invisíveis: você cai um andar e perde 3 + sorteio(andar) de HP.</li>
+<li><b>Armadilhas</b> são <b>invisíveis</b>: ao pisar você <b>cai sozinho</b> um andar (mesma posição) e perde 3 + sorteio(andar) de HP.</li>
 <li>A cada troca de andar o desenho é o mesmo (para o mesmo número da sorte), mas monstros e baús <b>voltam</b>.</li></ul>
+<h3>Onde ficam as escadas</h3>
+<p>Todo andar tem uma escada que sobe e uma que desce, nos mesmos dois pontos do mapa (coluna, linha, a partir de 0), que trocam a cada andar:</p>
+<table><tr><th>Andar</th><th>Sobe</th><th>Desce</th></tr>
+<tr><td>1</td><td>(1, 1) — sai da masmorra</td><td>(3, 7)</td></tr>
+<tr><td>ímpar (3, 5…)</td><td>(7, 3)</td><td>(3, 7)</td></tr>
+<tr><td>par (2, 4…)</td><td>(3, 7)</td><td>(7, 3)</td></tr></table>
 ''')
 
 # 10 ------------------------------------------------------------- combate

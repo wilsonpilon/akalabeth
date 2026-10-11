@@ -74,11 +74,21 @@ O painel de baixo mostra mensagens à esquerda; à direita ficam **FOOD** (comid
 | --- | --- | --- |
 | Porta | Retângulo marrom na parede | Pode ser atravessada. |
 | Porta secreta | Parece parede | Também é atravessável: ande para frente. |
-| Armadilha | Invisível | Você cai para o andar de baixo e perde `3 + sorteio(nível)` de HP (`FALLING TO LEVEL n`). |
-| Buraco no chão | Trapézio preto | `ENTER` desce um andar. |
-| Escada | Hastes douradas | `ENTER` sobe ou desce. No andar 1 a escada para cima **sai da masmorra**. |
+| Armadilha | **Invisível** | Ao pisar você **cai sozinho** para o andar de baixo, na mesma posição, e perde `3 + sorteio(nível)` de HP (`FALLING TO LEVEL n`). |
+| Buraco no chão | Trapézio preto | **Não derruba**: você pode passar por cima. Só desce se apertar `ENTER` em cima dele. |
+| Escada | Hastes douradas | `ENTER` sobe ou desce, em qualquer classe (não precisa do amuleto). No andar 1 a escada para cima **sai da masmorra**. |
 | Baú | Caixa dourada (`CHEST!`) | Ao pisar: ouro + um item aleatório (inclusive comida). |
 | Mímico | **Também parece um baú** | Fica parado e ataca quem chega perto. |
+
+**Onde ficam as escadas.** Todo andar tem uma escada que sobe e uma que desce, sempre nos mesmos dois pontos do mapa, que trocam de lugar a cada andar (use o minimapa; as coordenadas são coluna, linha, contadas a partir de 0):
+
+| Andar | Escada que sobe | Escada que desce |
+| --- | --- | --- |
+| 1 | (1, 1), **sai da masmorra** | (3, 7) |
+| ímpar (3, 5, …) | (7, 3) | (3, 7) |
+| par (2, 4, …) | (3, 7) | (7, 3) |
+
+Se cair por uma armadilha, a escada de subida do novo andar está num desses dois pontos. O amuleto só cria uma escada extra onde você estiver.
 
 Cada vez que você troca de andar, o andar é gerado de novo. O desenho é o mesmo para o mesmo número da sorte, mas os monstros e os baús **voltam**.
 

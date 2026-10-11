@@ -213,9 +213,23 @@ openmsx -machine Philips_NMS_8250 -ext msxdos2 -diska dist/akalabeth.dsk
 | 7 | Amuleto mágico no nível 2. |
 | 8 | Mímico a 3 células (testa o feitiço KILL). |
 
-### Cheat de teste
+### Cheats de teste (v0.4.1) — não documentados no manual
 
-`C` no mundo (v0.4.1): revela o castelo no minimapa e mostra `CASTLE AT x,y`. O mesmo número da sorte sempre gera o mesmo mundo, e o castelo é único por mapa.
+Só valem se o jogo foi iniciado com **TAB** (na abertura ou na tela de título; um bipe confirma). Qualquer outra tecla inicia o jogo sem cheats. Em compilações de depuração (`AK_DEBUG > 0`) ficam sempre ligados. Uso: **SELECT** e depois a letra (aparece `CHEAT>`).
+
+| Contexto | Letra | Efeito |
+| --- | --- | --- |
+| Masmorra | `U` / `D` | mostra no minimapa a escada que sobe / a que desce (e os buracos) |
+| Masmorra | `M` | abre o minimapa inteiro |
+| Masmorra | `P` | liga/desliga: portas secretas aparecem como portas |
+| Masmorra | `T` | liga/desliga: armadilhas aparecem em vermelho |
+| Masmorra | `E` | liga/desliga: todos os monstros no minimapa (vermelho) |
+| Mundo | `C` | mostra o castelo no minimapa e as coordenadas (`CASTLE AT x,y`) |
+| Mundo | `D` / `N` | mostra as masmorras / as cidades |
+| Mundo | `M` | abre o minimapa inteiro |
+| Ambos | `F` / `G` / `H` | +100 de comida / +100 de ouro / +50 de HP |
+
+O mesmo número da sorte sempre gera o mesmo mundo; o castelo é único por mapa. Variáveis globais sem inicializador valem **lixo** no MSX-DOS (a RAM não é zerada): `g_cheat`/`g_cheatMap` são zeradas em `main`.
 
 ### Roteiro de teste no openMSX
 
