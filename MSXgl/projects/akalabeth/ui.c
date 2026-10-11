@@ -49,6 +49,7 @@ static u8 s_line = 0, s_col = 0;
 static void con_scroll(void)
 {
 	VDP_CommandHMMM(CON_X, CON_Y + 8, CON_X, CON_Y, CON_COLS * 6, (CON_LINES - 1) * 8);
+	VDP_CommandHMMM(CON_X, CON_Y + 8 + 256, CON_X, CON_Y + 256, CON_COLS * 6, (CON_LINES - 1) * 8);	// the HUD also exists on page 1
 	gfx_rect(CON_X, CON_Y + (CON_LINES - 1) * 8, CON_COLS * 6, 8, C_NAVY);
 	s_line = CON_LINES - 1;
 }
@@ -210,7 +211,7 @@ static const SfxStep* const sfx_table[14] =
 	sfx_down, sfx_up, sfx_death, sfx_magic, sfx_select, sfx_buy, sfx_fan
 };
 
-typedef struct { const u8* p; u8 left; u16 period; u8 age; u8 vol; } Voice;
+typedef struct { const u8* p; u8 left; u16 period; u8 age; u8 vol; u8 on; } Voice;
 
 static const SfxStep* volatile s_sfx = 0;		// effect being played (0 = none)
 static volatile u8 s_sfxLeft = 0;
@@ -223,6 +224,7 @@ static bool s_hz50 = TRUE;
 static u8 s_skip = 0;
 static volatile bool g_psgBusy = FALSE;			// set while the BIOS reads the joysticks (shares the PSG ports)
 volatile u16 g_sndTicks;						// number of interrupts handled (diagnostics)
+static u8 s_shadow[14];							// last value written to each PSG register
 
 // PSG register write (A = register, L = value; sdcccall(1))
 static void psg_w(u8 reg, u8 val) __naked
@@ -236,20 +238,21 @@ static void psg_w(u8 reg, u8 val) __naked
 	__endasm;
 }
 
-// advance one voice by one tick
-static void voice_step(Voice* v, const u8* start, u8 speed)
+// only touch the PSG when the value really changed (most ticks change nothing)
+static void psg_set(u8 reg, u8 val)
 {
-	if (v->left == 0)
-	{
-		if (v->p[0] == 0xFF) v->p = start;				// loop
-		u8 n = v->p[0];
-		v->left = v->p[1] * speed;
-		v->p += 2;
-		v->age = 0;
-		if (n == 0) v->vol = 0;
-		else { v->period = g_NotePeriod[n]; v->vol = 1; }
-	}
-	else { v->left--; v->age++; }
+	if (s_shadow[reg] != val) { s_shadow[reg] = val; psg_w(reg, val); }
+}
+
+// volume of the note: melody decays quickly, bass slowly, harmony is constant; short release at the end
+static u8 env_vol(u8 i, u8 age, u8 left)
+{
+	u8 vv, d;
+	if (i == 0)      { d = age >> 3; vv = (d < 6) ? 12 - d : 6; }
+	else if (i == 1) { d = age >> 4; vv = (d < 4) ? 10 - d : 6; }
+	else             vv = 5;
+	if (left <= 1) vv = vv > 3 ? vv - 3 : 0;
+	return vv;
 }
 
 // Interrupt service: called 50/60 times per second
@@ -269,7 +272,7 @@ void snd_tick(void)
 		{
 			const MusicSong* sg = &g_Songs[req];
 			s_song = sg; s_curSong = req;
-			for (u8 i = 0; i < 3; i++) { s_voice[i].p = sg->tr[i]; s_voice[i].left = 0; s_voice[i].vol = 0; s_voice[i].age = 0; }
+			for (u8 i = 0; i < 3; i++) { s_voice[i].p = sg->tr[i]; s_voice[i].left = 0; s_voice[i].vol = 0; s_voice[i].age = 0; s_voice[i].on = 0; }
 		}
 	}
 
@@ -280,23 +283,30 @@ void snd_tick(void)
 	u8 noise = 0;
 	u8 mix = 0x38;												// tones on, noise off (bits 3-5 = 1)
 
-	// music
+	// music: a voice only does real work when a note starts or its envelope steps
 	if (s_song && s_musicOn)
 	{
 		u8 sp = s_song->speed;
 		for (u8 i = 0; i < 3; i++)
 		{
 			Voice* v = &s_voice[i];
-			voice_step(v, s_song->tr[i], sp);
-			if (v->vol)
+			if (v->left == 0)
 			{
-				u8 vv;
-				if (i == 0)      { u8 d = v->age >> 3; vv = (d < 6) ? 12 - d : 6; }
-				else if (i == 1) { u8 d = v->age >> 4; vv = (d < 4) ? 10 - d : 6; }
-				else             vv = 5;
-				if (v->left <= 1) vv = vv > 3 ? vv - 3 : 0;			// short release before the next note
-				tone[i] = v->period; vol[i] = vv;
+				const u8* p = v->p;
+				if (p[0] == 0xFF) p = s_song->tr[i];			// loop
+				u8 n = p[0];
+				v->left = p[1] * sp;
+				v->p = p + 2;
+				v->age = 0;
+				v->on = (n != 0);
+				if (n) { v->period = g_NotePeriod[n]; v->vol = env_vol(i, 0, v->left); }
 			}
+			else
+			{
+				v->left--; v->age++;
+				if (v->on && (((v->age & 7) == 0) || v->left == 1)) v->vol = env_vol(i, v->age, v->left);
+			}
+			if (v->on) { tone[i] = v->period; vol[i] = v->vol; }
 		}
 	}
 
@@ -323,12 +333,12 @@ void snd_tick(void)
 	if (!tone[2]) mix |= 0x04;
 	for (u8 i = 0; i < 3; i++)
 	{
-		psg_w(i * 2, tone[i] & 0xFF);
-		psg_w(i * 2 + 1, tone[i] >> 8);
-		psg_w(8 + i, vol[i]);
+		psg_set(i * 2, tone[i] & 0xFF);
+		psg_set(i * 2 + 1, tone[i] >> 8);
+		psg_set(8 + i, vol[i]);
 	}
-	psg_w(6, noise);
-	psg_w(7, 0x80 | mix);										// bit 7 = I/O port B as output (MSX convention)
+	psg_set(6, noise);
+	psg_set(7, 0x80 | mix);										// bit 7 = I/O port B as output (MSX convention)
 }
 
 // ---- interrupt hook installation (H.TIMI = 0FD9Fh, 5 bytes) ----
@@ -371,6 +381,7 @@ static void isr_entry(void) __naked
 void snd_init(void)
 {
 	s_hz50 = VDP_GetFrequency() != 0;
+	for (u8 r = 0; r < 14; r++) s_shadow[r] = 0xA5;		// impossible value: forces the first write
 	if (s_hooked) return;
 	u8* h = (u8*)H_TIMI;
 	__asm__("di");

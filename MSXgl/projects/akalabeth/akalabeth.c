@@ -328,6 +328,7 @@ static void prompt(void)
 
 volatile u16 g_drawtime;		// frames spent drawing the last scene (profiling)
 volatile u16 g_hudtime;			// frames spent updating the HUD
+volatile u16 g_tparts[4];		// profiling: frames spent before/after each phase of a turn
 volatile u16 g_turntime;		// frames from key press to next prompt
 
 static void draw_scene(void)
@@ -1128,10 +1129,14 @@ static void game_loop(void)
 			prompt();
 			continue;
 		}
+		g_tparts[0] = g_JIFFY - tt;
 		if (!end_turn()) return;
+		g_tparts[1] = g_JIFFY - tt;
 		draw_scene();
+		g_tparts[2] = g_JIFFY - tt;
 		prompt();
 		g_turntime = g_JIFFY - tt;
+		g_tparts[3] = g_turntime;
 	}
 }
 

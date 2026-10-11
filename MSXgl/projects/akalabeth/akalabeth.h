@@ -8,7 +8,7 @@
 #pragma once
 #include "msxgl.h"
 
-#define AK_VERSION		"0.2.0"
+#define AK_VERSION		"0.3.0"
 
 // Debug start: begin directly in dungeon level 1 with a rat in front (test builds only)
 #define AK_DEBUG		0

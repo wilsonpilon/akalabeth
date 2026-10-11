@@ -2,6 +2,17 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em [SemVer](https://semver.org/).
 
+## [0.3.0] — 2026-10-11
+
+### Alterado (desempenho)
+- Passo no mundo: ~19 → **~15 quadros** (20 ms); passo na masmorra: ~26–34 → **~20–28 quadros**; giro na masmorra: 26 → 20.
+  - **Troca de páginas** (R#2) na masmorra: desenha na página oculta e alterna, sem cópia de 256×160.
+  - HUD duplicado nas duas páginas (linhas 160+ em ambas).
+  - Atlas de tiles movido para a página 0 (linhas 212–255, tiles cortados em 44 linhas); sprites desativados (`VDP_DisableSprite`), pois suas tabelas ficam nessa área.
+  - Texto por escrita direta na VRAM (`blit_glyph` em assembly), em vez de ~5 ms/caractere via módulo Print.
+  - Motor de som com sombra dos registradores do PSG: só escreve o que mudou.
+- Perfil por fase do turno (`g_tparts`) para depuração.
+
 ## [0.2.0] — 2026-10-10
 
 ### Adicionado

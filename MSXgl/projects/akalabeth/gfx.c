@@ -28,8 +28,18 @@ static const u16 g_Pal[16] =
 	RGB16(7, 7, 7),		// 15 white
 };
 
-// Drawing target: 0 = visible page, 256 = off-screen page 1
+// Drawing target (added to every y): 0 = page 0, 256 = page 1
 static u16 g_oy = 0;
+static u8 s_front = 0;				// page being displayed (R#2)
+
+// Show page p (0/1). The caller must have finished drawing on it.
+static void show_page(u8 p)
+{
+	if (p == s_front) return;
+	VDP_CommandWait();
+	VDP_RegWrite(2, 0x1F | (p << 5));
+	s_front = p;
+}
 
 void gfx_set_palette_fade(u8 level)
 {
@@ -47,9 +57,9 @@ void gfx_init(void)
 	VDP_SetMode(VDP_MODE_SCREEN5);
 	VDP_SetColor(C_BLACK);
 	VDP_EnableDisplay(FALSE);
+	VDP_DisableSprite();			// the game has no sprites: their tables (page 0, rows 212..255) hold the tile atlas
 	VDP_ClearVRAM();
 	gfx_set_palette_fade(7);
-	Print_SetBitmapFont(g_Font_MGL_Sample6);
 	VDP_EnableDisplay(TRUE);
 }
 
@@ -63,15 +73,19 @@ void gfx_flicker(u8 phase)
 
 //-----------------------------------------------------------------------------
 // Primitives (all clipped to 256x212)
+static bool s_hot;
+
 void gfx_rect(u16 x, u16 y, u16 w, u16 h, u8 c)
 {
 	if (w == 0 || h == 0) return;
+	if (!g_oy) { s_hot = TRUE; if (y >= VIEW_H) { g_oy = 256; gfx_rect(x, y, w, h, c); g_oy = 0; } }
 	if (((x | w) & 1) == 0) VDP_CommandHMMV(x, y + g_oy, w, h, c | (c << 4));	// byte aligned: fast path
 	else VDP_CommandLMMV(x, y + g_oy, w, h, c, VDP_OP_IMP);
 }
 
 void gfx_hline(i16 x0, i16 x1, i16 y, u8 c)
 {
+	if (!g_oy) { s_hot = TRUE; if (y >= VIEW_H) { g_oy = 256; gfx_hline(x0, x1, y, c); g_oy = 0; } }
 	if (x0 > x1) { i16 t = x0; x0 = x1; x1 = t; }
 	if (x1 < 0 || x0 > 255 || y < 0 || y > 211) return;
 	if (x0 < 0) x0 = 0;
@@ -81,7 +95,9 @@ void gfx_hline(i16 x0, i16 x1, i16 y, u8 c)
 
 void gfx_vline(i16 x, i16 y0, i16 y1, u8 c)
 {
+	if (!g_oy) s_hot = TRUE;
 	if (y0 > y1) { i16 t = y0; y0 = y1; y1 = t; }
+	if (!g_oy && y0 >= VIEW_H) { g_oy = 256; gfx_vline(x, y0, y1, c); g_oy = 0; }
 	if (x < 0 || x > 255 || y1 < 0 || y0 > 211) return;
 	if (y0 < 0) y0 = 0;
 	if (y1 > 211) y1 = 211;
@@ -93,6 +109,7 @@ static i16 clampy(i16 v) { return v < 0 ? 0 : (v > 211 ? 211 : v); }
 
 void gfx_line(i16 x0, i16 y0, i16 x1, i16 y1, u8 c)
 {
+	if (!g_oy) s_hot = TRUE;
 	if (y0 == y1) { gfx_hline(x0, x1, y0, c); return; }
 	if (x0 == x1) { gfx_vline(x0, y0, y1, c); return; }
 	Draw_Line(clampx(x0), clampy(y0) + g_oy, clampx(x1), clampy(y1) + g_oy, c, VDP_OP_IMP);
@@ -108,14 +125,101 @@ void gfx_box(i16 x, i16 y, i16 w, i16 h, u8 c)
 
 void gfx_clear(u8 c)
 {
+	show_page(0);
+	s_hot = TRUE;
 	VDP_CommandLMMV(0, 0, 256, 212, c, VDP_OP_IMP);
+}
+
+//-----------------------------------------------------------------------------
+// Fast text: glyph rows are written by the CPU directly into VRAM (6x8 font, 2 pixels per byte).
+// Text always starts on an even x, so every glyph covers exactly 3 whole bytes per row.
+static u8 s_tlbuf[8];
+static u8* s_tlp;								// 4-byte aligned lookup table (2 pixels -> 1 byte)
+static const u8* s_tg;							// glyph (8 bytes)
+static u16 s_ta;								// VRAM address of the glyph's first row (y*128 + x/2)
+
+static void blit_glyph(void) __naked
+{
+	__asm
+		push	ix
+		ld		ix, (_s_tg)
+		ld		de, (_s_ta)
+		ld		b, #8
+	blit_row:
+		di
+		ld		a, d							; R#14 = A16..A14
+		rlca
+		rlca
+		and		a, #3
+		out		(#0x99), a
+		ld		a, #0x8E
+		out		(#0x99), a
+		ld		a, e							; A7..A0
+		out		(#0x99), a
+		ld		a, d							; 01 + A13..A8 (write)
+		and		a, #0x3F
+		or		a, #0x40
+		out		(#0x99), a
+		ld		c, 0(ix)						; glyph row, pixels in bits 7..2
+		inc		ix
+		ld		a, c							; pixels 0,1
+		rlca
+		rlca
+		and		a, #3
+		ld		hl, (_s_tlp)
+		add		a, l
+		ld		l, a
+		ld		a, (hl)
+		out		(#0x98), a
+		ld		a, c							; pixels 2,3
+		rrca
+		rrca
+		rrca
+		rrca
+		and		a, #3
+		ld		hl, (_s_tlp)
+		add		a, l
+		ld		l, a
+		ld		a, (hl)
+		out		(#0x98), a
+		ld		a, c							; pixels 4,5
+		rrca
+		rrca
+		and		a, #3
+		ld		hl, (_s_tlp)
+		add		a, l
+		ld		l, a
+		ld		a, (hl)
+		out		(#0x98), a
+		ei
+		ld		hl, #128
+		add		hl, de
+		ex		de, hl
+		djnz	blit_row
+		pop		ix
+		ret
+	__endasm;
 }
 
 void gfx_text(u16 x, u16 y, const c8* s, u8 fg, u8 bg)
 {
-	Print_SetColor(fg, bg);
-	Print_SetPosition(x, y);
-	Print_DrawText(s);
+	if (s_hot) { VDP_CommandWait(); s_hot = FALSE; }	// do not race with a fill that is still running
+	s_tlp = (u8*)(((u16)s_tlbuf + 3) & 0xFFFC);
+	s_tlp[0] = (bg << 4) | bg;
+	s_tlp[1] = (bg << 4) | fg;
+	s_tlp[2] = (fg << 4) | bg;
+	s_tlp[3] = (fg << 4) | fg;
+	for (u8 pass = 0; pass < 2; pass++)
+	{
+		u16 addr = (y + (pass ? 256 : 0)) * 128 + ((x & 0xFFFE) >> 1);
+		for (const c8* p = s; *p; p++, addr += 3)
+		{
+			s_tg = g_Font_MGL_Sample6 + 4 + (u8)*p * 8;
+			s_ta = addr;
+			blit_glyph();
+		}
+		if (y < VIEW_H) break;							// HUD rows only: both pages hold the HUD
+	}
 }
 
 static u8 slen(const c8* s) { u8 n = 0; while (s[n]) n++; return n; }
@@ -464,7 +568,8 @@ void gfx_draw_dungeon(void)
 {
 	gfx_ow_invalidate();
 	g_visn = 0; g_visChest = false;
-	g_oy = 256;
+	u8 back = s_front ^ 1;
+	g_oy = back ? 256 : 0;
 	u16 tp = g_JIFFY;
 	for (u8 q = 0; q < 6; q++) g_prof[q] = 0;
 
@@ -520,17 +625,16 @@ void gfx_draw_dungeon(void)
 	if (g_dmapon)
 	{
 		gfx_box(217, 2, 36, 36, C_WOOD);
-		VDP_CommandHMMM(0, DMAP_IY, 218, 256 + 3, 34, 33);
+		VDP_CommandHMMM(0, DMAP_IY, 218, g_oy + 3, 34, 33);
 		for (u8 i = 0; i < g_visn; i++)
 			gfx_rect(218 + s_monx[i] * 3, 3 + s_mony[i] * 3, 3, 3, C_RED);
 		gfx_rect(218 + g_px * 3, 3 + g_py * 3, 3, 3, C_WHITE);
 		gfx_rect(219 + g_px * 3 + g_dx, 4 + g_py * 3 + g_dy, 1, 1, C_RED);
 	}
-	// copy to the visible page
-	VDP_CommandHMMM(0, 256, 0, 0, 256, VIEW_H);
-	VDP_CommandWait();
-	g_prof[4] = g_JIFFY - tp;
+	// flip: the page just drawn becomes the visible one (no copy)
 	g_oy = 0;
+	show_page(back);
+	g_prof[4] = g_JIFFY - tp;
 }
 
 //-----------------------------------------------------------------------------
@@ -555,7 +659,7 @@ static void tile_grass(i16 x, i16 y, u8 tx, u8 ty)
 
 static void tile_mountain(i16 x, i16 y)
 {
-	fill_tri(x + 15, y + 22, 24, 13, C_ST2, C_ST1);
+	fill_tri(x + 15, y + 22, 22, 13, C_ST2, C_ST1);
 	fill_tri(x + 15, y + 22, 8, 4, C_WHITE, C_ST4);
 	fill_tri(x + 29, y + 6, 38, 21, C_ST4, C_ST2);
 	fill_tri(x + 29, y + 6, 13, 7, C_WHITE, C_ST4);
@@ -574,7 +678,7 @@ static void tile_trees(i16 x, i16 y)
 {
 	pine(x + 13, y + 28);
 	pine(x + 34, y + 24);
-	pine(x + 24, y + 44);
+	pine(x + 24, y + 43);
 }
 
 static void house(i16 x, i16 y, i16 w, i16 h)
@@ -588,7 +692,7 @@ static void house(i16 x, i16 y, i16 w, i16 h)
 
 static void tile_town(i16 x, i16 y)
 {
-	gfx_rect(x + 3, y + 36, 44, 9, C_ST3);			// cobbled square
+	gfx_rect(x + 3, y + 36, 44, 8, C_ST3);			// cobbled square
 	gfx_hline(x + 3, x + 46, y + 40, C_ST2);
 	house(x + 5, y + 21, 16, 15);
 	house(x + 27, y + 17, 18, 19);
@@ -657,7 +761,7 @@ static void put_num2(c8* s, u8 v)
 
 // Overworld: the side panels and the minimap are persistent on the visible page; only the tile
 // area is rebuilt off-screen and copied, and only the values that changed are re-printed.
-#define ATLAS_Y		416				// atlas rows in page 1 (below the 3D / tile buffer, above the dungeon automap image)
+#define ATLAS_Y		212				// atlas rows in page 0 (below the visible screen); tiles are cropped to 44 rows
 static bool s_atlas = FALSE;
 
 // Each special tile is rendered once into the atlas and then only copied (HMMM)
@@ -665,7 +769,8 @@ static void atlas_build(void)
 {
 	g_oy = 256;
 	for (u8 t = T_MOUNTAIN; t <= T_CASTLE; t++)
-		tile_draw(t, (t - 1) * OW_TS, ATLAS_Y - 256, 7, 7);
+		tile_draw(t, (t - 1) * OW_TS, 0, 7, 7);
+	VDP_CommandHMMM(0, 256, 0, ATLAS_Y, 5 * OW_TS, 44);
 	VDP_CommandWait();
 	s_atlas = TRUE;
 }
@@ -716,6 +821,7 @@ static void ow_static(void)
 void gfx_draw_overworld(void)
 {
 	g_visn = 0; g_visChest = false;
+	show_page(0);
 	if (!s_owStatic) ow_static();
 	for (i8 iy = -1; iy <= 1; iy++)
 		for (i8 ix = -1; ix <= 1; ix++)
@@ -730,7 +836,11 @@ void gfx_draw_overworld(void)
 			u8 tx = g_tx + ix, ty = g_ty + iy, t = g_te[tx][ty];
 			i16 x = OW_X0 + (ix + 1) * OW_TS, y = OW_Y0 + (iy + 1) * OW_TS;
 			if (t == T_GRASS) tile_grass(x, y, tx, ty);
-			else VDP_CommandHMMM((t - 1) * OW_TS, ATLAS_Y, x, 256 + y, OW_TS, OW_TS);
+			else
+			{
+				VDP_CommandHMMM((t - 1) * OW_TS, ATLAS_Y, x, 256 + y, OW_TS, 44);
+				gfx_rect(x, y + 44, OW_TS, OW_TS - 44, C_GRASS);		// the cropped rows are plain grass
+			}
 		}
 	i16 px = OW_X0 + OW_TS + 25, py = OW_Y0 + OW_TS + 24;
 	gfx_rect(px - 5, py - 10, 11, 21, C_BLACK);
