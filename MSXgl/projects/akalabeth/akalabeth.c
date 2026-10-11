@@ -156,9 +156,9 @@ static void gen_world(void)
 			if (t == T_TOWN && RNDGT(500)) t = 0;
 			g_te[x][y] = t;
 		}
-	g_te[rnd_n(19) + 1][rnd_n(19) + 1] = T_CASTLE;
-	g_tx = rnd_n(19) + 1;
-	g_ty = rnd_n(19) + 1;
+	u8 cx = rnd_n(19) + 1, cy = rnd_n(19) + 1;
+	g_te[cx][cy] = T_CASTLE;
+	do { g_tx = rnd_n(19) + 1; g_ty = rnd_n(19) + 1; } while (g_tx == cx && g_ty == cy);	// the start town must not replace the castle
 	g_te[g_tx][g_ty] = T_TOWN;			// you start in a town
 	// make sure there is at least one dungeon entrance
 	bool any = FALSE;
@@ -1130,6 +1130,23 @@ static u8 do_command(u8 k)
 	case 'P': case 'p':
 		s_pause = !s_pause;
 		con_puts(s_pause ? "PAUSE ON" : "PAUSE OFF", C_WHITE);
+		return 0;
+	case 'C': case 'c':								// cheat (testing): reveal the castle on the minimap
+		if (dungeon) { con_puts("HUH?", C_RED); return 0; }
+		for (u8 x = 1; x < MAPW - 1; x++)
+			for (u8 y = 1; y < MAPW - 1; y++)
+				if (g_te[x][y] == T_CASTLE)
+				{
+					g_seen[x][y] = 1;
+					draw_scene();
+					c8 b[20]; u8 n = 0;
+					const c8* t = "CASTLE AT ";
+					for (; t[n]; n++) b[n] = t[n];
+					n += num2s(x, b + n); b[n++] = ','; n += num2s(y, b + n);
+					con_puts(b, C_GOLD);
+					ui_pause_key("-CR- TO CONT. ");
+					return 0;
+				}
 		return 0;
 	case 'H': case 'h': case '?':
 		help_screen();

@@ -7,7 +7,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em 
 ### Removido
 - **Suporte a joystick.** O jogo é só de teclado. Sem o polling da BIOS (`GTSTCK`/`GTTRIG`) a cada quadro, some a flag `g_psgBusy` (que fazia a interrupção pular ticks da música), o laço de espera fica mais leve e o programa encolhe ~330 bytes (mais memória livre). `INPUT_USE_JOYSTICK` desligado no `msxgl_config.h`.
 
+### Adicionado
+- **Cheat de teste:** a tecla `C` no mundo revela o castelo no minimapa e mostra suas coordenadas (`CASTLE AT x,y`). Não consta do manual do jogador.
+
 ### Corrigido
+- A cidade inicial podia substituir o castelo (1 chance em 361): agora é sorteada de novo se cair nele. Mapas existentes não mudam.
 - Música: cada nota durava 1 tick a mais (andamento ~2% lento).
 
 ## [0.4.0] — 2026-10-11

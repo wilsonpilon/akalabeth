@@ -213,6 +213,10 @@ openmsx -machine Philips_NMS_8250 -ext msxdos2 -diska dist/akalabeth.dsk
 | 7 | Amuleto mágico no nível 2. |
 | 8 | Mímico a 3 células (testa o feitiço KILL). |
 
+### Cheat de teste
+
+`C` no mundo (v0.4.1): revela o castelo no minimapa e mostra `CASTLE AT x,y`. O mesmo número da sorte sempre gera o mesmo mundo, e o castelo é único por mapa.
+
 ### Roteiro de teste no openMSX
 
 `tools/test/` guarda o harness (Tcl + PowerShell) usado nas verificações: sincroniza com o jogo pelo contador `g_keywait`, grava capturas e mede quadros (`g_drawtime`, `g_hudtime`, `g_turntime`). Os caminhos estão fixos para a máquina original; adapte-os. Armadilhas descobertas:
