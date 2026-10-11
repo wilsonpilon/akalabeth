@@ -1,6 +1,6 @@
 # Akalabeth MSX2 — Outline técnico, status e pendências
 
-**Versão atual: 0.2.0** (10/out/2026) · Alvo: MSX2, 64 KB RAM / 64 KB VRAM, MSX-DOS 1 ou 2 · SDCC 4.6 + MSXgl
+**Versão atual: 0.3.0** (11/out/2026) · Alvo: MSX2, 64 KB RAM / 64 KB VRAM, MSX-DOS 1 ou 2 · SDCC 4.6 + MSXgl
 
 > Este documento é o ponto de retomada do projeto: o que existe, como funciona, o que foi testado,
 > o que está pendente e o que melhorar. Atualize a seção **2. Onde estamos** a cada release.
@@ -36,8 +36,8 @@ E:\akalabeth\
 | Arquivo | Responsabilidade |
 | --- | --- |
 | `akalabeth.c` | Estado do jogo, geração do mundo (21×21) e das masmorras (11×11, semente = nº da sorte + entrada + andar), IA dos monstros, combate, loja, castelo/missões, salvar/carregar (handles do DOS 2), título e criação de personagem, `main`. |
-| `gfx.c` | Paleta de 16 cores (de 512), primitivas com buffer fora da tela (página 1 do SCREEN 5), renderizador 3D preenchido, tiles do mundo (atlas na VRAM), minimapas. |
-| `ui.c` | Console de mensagens, HUD incremental, teclado (CHGET via CALSLT) e joystick, **motor de som** na interrupção, gerador aleatório (xorshift16). |
+| `gfx.c` | Paleta de 16 cores (de 512), primitivas com troca de páginas (R#2) e HUD duplicado nas duas páginas, **escritor de texto direto na VRAM** (`blit_glyph`, em assembly), renderizador 3D preenchido, tiles do mundo (atlas na VRAM), minimapas. |
+| `ui.c` | Console de mensagens, HUD incremental, teclado (CHGET via CALSLT) e joystick, **motor de som** na interrupção (com sombra dos registros do PSG: só escreve o que mudou), gerador aleatório (xorshift16). |
 | `tools/gen_data.js` | Lê `basic.bas` e gera `content/data_gen.h`: polilinhas dos monstros e tabelas de perspectiva reparametrizadas de 280 para 256 px. |
 | `tools/gen_music.js` | Gera `content/music_gen.h` a partir de uma notação textual (`A4:3 C#5:1 R:2`). |
 
@@ -45,17 +45,22 @@ E:\akalabeth\
 
 | Região | Uso |
 | --- | --- |
-| Página 0, linhas 0–211 | Tela visível. |
-| Página 1, linhas 256–415 | Buffer fora da tela (3D da masmorra e tiles do mundo), copiado por `HMMM`. |
-| Página 1, linhas 416–465 | **Atlas de tiles** do mundo (montanha, árvores, cidade, masmorra, castelo), 50×50 cada. |
+| Página 0, linhas 0–211 | Tela A. Na masmorra é uma das duas telas completas (3D + HUD). |
+| Página 0, linhas 212–255 | **Atlas de tiles** do mundo (montanha, árvores, cidade, masmorra, castelo), 50×**44** cada (cortados em 44 linhas). |
+| Página 1, linhas 256–467 | Tela B (3D + HUD). O mundo desenha os tiles aqui e copia 150×150 por `HMMM`. |
 | Página 1, linhas 470–502 | Imagem do **minimapa da masmorra** (34×33), atualizada incrementalmente. |
+
+A masmorra desenha na página oculta e alterna a página exibida (`R#2`), sem cópia. Como as tabelas de sprites do SCREEN 5
+caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desativados** (`VDP_DisableSprite`); o jogo não usa sprites.
 
 ### Decisões de projeto importantes
 
 - **Chamadas à BIOS:** em MSX-DOS a página 0 é RAM, então qualquer chamada direta à BIOS trava. Tudo passa por `CALSLT` (`bios_call` em `ui.c`).
 - **`VDP_UNIT_U16`** no `msxgl_config.h`: com 8 bits em `UY` o `Draw_Line` truncava `y + 256`.
 - **Som na interrupção:** gancho em `H.TIMI` (0FD9Fh); só a rotina de interrupção escreve no PSG. Andamento compensado em 60 Hz (pula 1 em cada 6 ticks).
-- **Texto é caro:** ~5 ms por caractere. O HUD só reescreve o que mudou; o mundo só reescreve X/Y/nome quando mudam.
+- **Texto direto na VRAM:** o módulo Print do MSXgl custava ~5 ms por caractere. `blit_glyph` (assembly) escreve as 8 linhas do glifo 6×8 como 3 bytes por linha (todo texto começa em x par). O HUD ainda só reescreve o que mudou e o mundo só reescreve X/Y/nome quando mudam.
+- **Troca de páginas na masmorra:** desenha-se na página oculta e troca-se `R#2`. O HUD (linhas 160+) é desenhado **nas duas páginas** (`gfx_rect`/`hline`/`vline`/texto duplicam sozinhos quando `y >= 160`).
+- **Sombra do PSG:** `psg_w` só escreve o registrador se o valor mudou (menos tempo na interrupção).
 - **Salvar/carregar** só em MSX-DOS 2 (handles). Em MSX-DOS 1 o jogo avisa.
 - **Mapas ≠ GW-BASIC:** o gerador aleatório é outro; o número da sorte reproduz o **próprio** mapa deste porte.
 
@@ -68,7 +73,7 @@ E:\akalabeth\
 
 ---
 
-## 2. Onde estamos (v0.2.0)
+## 2. Onde estamos (v0.3.0)
 
 ### Pronto e testado no emulador (openMSX, Philips NMS 8250, MSX-DOS 2)
 
@@ -84,13 +89,25 @@ E:\akalabeth\
 - [x] Saída para o DOS (`ESC`) restaurando texto e paleta; gancho de interrupção restaurado.
 - [x] Disco de 720 KB (`msxdisk.exe`) que inicia sozinho.
 
-### Medidas de desempenho (quadros de 20 ms por passo)
+### Medidas de desempenho (quadros de 20 ms por passo; PAL, openMSX, MSX-DOS 2)
 
-| Ação | v0.1 | v0.2.0 |
-| --- | --- | --- |
-| Passo no mundo | 60–67 | **19–20** |
-| Passo na masmorra | 62–70 | **26–34** |
-| Redesenho 3D (sem espera/HUD) | 19–27 | 19–27 |
+| Ação | v0.1 | v0.2.0 | v0.3.0 |
+| --- | --- | --- | --- |
+| Passo no mundo | 60–67 | 19–20 | **15–16** (≈0,3 s) |
+| Passo na masmorra (frente) | 62–70 | 33–34 | **27–28** (≈0,55 s) |
+| Virar na masmorra | 62 | 26 | **20** (≈0,4 s) |
+| Redesenho 3D (parte do passo) | 19–27 | 19–27 | **13–21** |
+
+Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os números da v0.3.0 foram conferidos nesta data
+(mundo: 3 passos; masmorra: início, 2 passos em frente, giro e passo).
+
+### Verificado na v0.3.0 (openMSX, MSX-DOS 2)
+
+- [x] Mundo: tiles do atlas (cidade, pinheiros, montanhas), texto e HUD incremental, volta da tela de status.
+- [x] Masmorra com troca de páginas: HUD correto nas duas páginas, minimapa, porta, buraco, descer de nível, status.
+- [x] Salvar/carregar (estado restaurado: ouro, comida, andar, minimapa).
+- [x] Tela de morte e tela da missão do castelo com o texto novo.
+- [ ] Não repetidos após a v0.3.0: loja com compras, amuleto (KILL/BAD??), armadilha, mímico, ESC. O código desses fluxos não mudou, mas só o texto e o HUD foram retestados.
 
 ### Não testado ainda
 
@@ -106,11 +123,12 @@ E:\akalabeth\
 | # | Problema | Notas |
 | --- | --- | --- |
 | 1 | **A música às vezes "pica" (engasga).** | Reportado pelo usuário em 10/out/2026 (não reproduzido em medições). Ver hipóteses abaixo. |
-| 2 | Passo na masmorra ainda leva ~0,6 s. | Cerca de 6 quadros são a cópia da página fora da tela. |
-| 3 | Texto lento (5 ms/caractere) deixa as telas cheias (loja, castelo) com ~1 s de desenho. | `DrawChar_4B` do MSXgl. |
+| 2 | Passo na masmorra ainda leva ~0,55 s. | O que sobra é o desenho do 3D (CPU: cálculo e comandos do VDP). Falta um perfil por função (usar `out/*.sym`, que inclui as `static`). |
+| 3 | Os tiles do mundo ficaram com 44 linhas (antes 50): a base das montanhas e das casas aparece mais curta. | Consequência de guardar o atlas na página 0 (linhas 212–255). |
 | 4 | `build.bat` do MSXgl falha na etapa do disco (`msxtar --size=720K`). | Inofensivo; use `tools/mkdisk.bat`. |
 | 5 | Os arquivos do MSX-DOS 2 no `.dsk` vêm das ferramentas do MSXgl. | Conferir licença antes de distribuir o disco. |
 | 6 | Aplicam-se float → inteiro: HP/2 no backfire arredonda para baixo. | Diferenças mínimas do BASIC. |
+| 7 | Sprites desativados (tabelas colidem com o atlas). | Se algum dia usar sprites, mover o atlas. |
 
 ### Música picotando — hipóteses (investigar na próxima sessão)
 
@@ -127,10 +145,10 @@ Instrumentar primeiro: contador de ticks pulados por `g_psgBusy`, duração máx
 ## 4. Roadmap sugerido
 
 **Próxima sessão (curto prazo)**
-1. Diagnosticar e corrigir a **música picotando** (seção 3).
-2. **Troca de página** em vez de cópia (`HMMM`) no 3D da masmorra e no mundo: tira ~6 quadros por passo. Exige desenhar o HUD nas duas páginas.
-3. Testar **joystick** e **60 Hz**; testar em MSX2 real.
-4. Voltar ao desempenho do texto: bitmap font próprio mais rápido, ou cache de linhas.
+1. Diagnosticar e corrigir a **música picotando** (seção 3). A sombra do PSG da v0.3.0 reduz o trabalho da interrupção, mas ainda **não foi verificado** se isso resolve; instrumentar `g_psgBusy`.
+2. **Perfil por função do 3D** (amostrar o PC e atribuir com `out/akalabeth.sym`, que traz as funções `static`) e atacar os maiores custos. O passo da masmorra ainda é ~0,55 s.
+3. Repetir a regressão completa (loja, amuleto, armadilha, mímico, ESC) na v0.3.0.
+4. Testar **joystick** e **60 Hz**; testar em MSX2 real.
 
 **Médio prazo**
 5. Usar a **RAM mapeada** (256 KB) do DOS 2 para guardar recursos (abertura, tiles, música maior) e carregar do disco.

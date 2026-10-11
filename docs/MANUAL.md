@@ -1,4 +1,4 @@
-# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.2.0)
+# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.3.0)
 
 ![Título](images/title.png)
 
@@ -201,4 +201,4 @@ Quatro temas originais (título, mundo, masmorra, castelo/loja) e 14 efeitos pel
 
 - A música às vezes engasga (veja `docs/OUTLINE.md`).
 - O joystick ainda não foi testado em hardware real.
-- Um passo na masmorra leva cerca de 0,6 s; no mundo, cerca de 0,4 s.
+- Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.
