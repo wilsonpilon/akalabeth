@@ -7,8 +7,9 @@
 //=============================================================================
 #pragma once
 #include "msxgl.h"
+#include "ramstore.h"
 
-#define AK_VERSION		"0.3.0"
+#define AK_VERSION		"0.4.0"
 
 // Debug start: begin directly in dungeon level 1 with a rat in front (test builds only)
 #define AK_DEBUG		0
@@ -34,6 +35,10 @@ enum
 	C_GOLD,			// 14 gold
 	C_WHITE			// 15
 };
+
+//-----------------------------------------------------------------------------
+// RAM store: AKALABET.DAT = 16 KB segments; each picture takes two (rows 0..127, rows 128..211)
+enum { ART_INTRO = 0, ART_HELP = 2, ART_OUTRO = 4, MUS_SEG = 6, ART_SEGS = 7 };	// MUS_SEG: all songs (see tools/gen_music.js)
 
 //-----------------------------------------------------------------------------
 // Geometry
@@ -106,6 +111,7 @@ void gfx_page(const c8* title);							// full-screen decorated page
 void gfx_draw_dungeon(void);
 void gfx_draw_overworld(void);
 void gfx_target_front(bool on);
+bool gfx_art(u8 idx);							// full-screen picture from the RAM store (FALSE: not available)
 void gfx_text_big(u16 x, u16 y, const c8* s, u8 scale, u8 color);
 void gfx_restore_palette(void);
 void gfx_flicker(u8 phase);
@@ -144,6 +150,7 @@ void ui_beep(u8 kind);
 void snd_init(void);
 void snd_shutdown(void);
 void music_play(u8 id);
+void music_pump(void);
 void music_stop(void);
 bool music_toggle(void);
 extern volatile u16 g_sndTicks;
@@ -155,6 +162,7 @@ enum { SFX_STEP = 0, SFX_BUMP, SFX_HIT, SFX_MISS, SFX_HURT, SFX_COIN, SFX_TRAP, 
 #define MUS_WORLD 1
 #define MUS_DUNGEON 2
 #define MUS_COURT 3
+#define MUS_VICTORY 4
 
 // rng
 u16  rnd16(void);

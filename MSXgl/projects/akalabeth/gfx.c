@@ -130,6 +130,19 @@ void gfx_clear(u8 c)
 	VDP_CommandLMMV(0, 0, 256, 212, c, VDP_OP_IMP);
 }
 
+// Full-screen picture (256x212) from the RAM store into page 0; FALSE when the store is not loaded
+bool gfx_art(u8 idx)
+{
+	if (!g_rsOk) return FALSE;
+	g_oy = 0;
+	show_page(0);
+	VDP_CommandWait();
+	s_hot = TRUE;
+	rs_to_vram(idx, 0, 16384, 0);
+	rs_to_vram(idx + 1, 0, 10752, 16384);
+	return TRUE;
+}
+
 //-----------------------------------------------------------------------------
 // Fast text: glyph rows are written by the CPU directly into VRAM (6x8 font, 2 pixels per byte).
 // Text always starts on an even x, so every glyph covers exactly 3 whole bytes per row.

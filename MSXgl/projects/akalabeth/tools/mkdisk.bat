@@ -10,13 +10,14 @@ pushd "%DIST%\stage"
 del /q * 2>nul
 if exist ..\akalabeth.dsk del ..\akalabeth.dsk
 copy /y "%PROJ%\out\akalabeth.com" AKALABET.COM >nul
-<nul set /p =AKALABET> AUTOEXEC.BAT
-echo.>> AUTOEXEC.BAT
+copy /y "%PROJ%\content\AKALABET.DAT" AKALABET.DAT >nul
+(echo RAMDISK /D& echo AKALABET) > AUTOEXEC.BAT
 copy /y "%DOS%\COMMAND2.COM" . >nul
 copy /y "%DOS%\MSXDOS2.SYS" . >nul
 "%ROOT%\msxdisk.exe" create ..\akalabeth.dsk
-"%ROOT%\msxdisk.exe" add ..\akalabeth.dsk AUTOEXEC.BAT AKALABET.COM COMMAND2.COM MSXDOS2.SYS
+"%ROOT%\msxdisk.exe" add ..\akalabeth.dsk AUTOEXEC.BAT AKALABET.COM AKALABET.DAT COMMAND2.COM MSXDOS2.SYS
 copy /y AKALABET.COM .. >nul
+copy /y AKALABET.DAT .. >nul
 popd
 rmdir /s /q "%DIST%\stage"
 "%ROOT%\msxdisk.exe" list "%DIST%\akalabeth.dsk" -l

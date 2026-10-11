@@ -1,4 +1,4 @@
-# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.3.0)
+# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.4.0)
 
 ![Título](images/title.png)
 
@@ -14,14 +14,15 @@ As regras são as do original; a apresentação (cores, música, minimapa, salva
 ## 2. Como iniciar
 
 - **Disco:** `akalabeth.dsk` (720 KB, MSX-DOS 2). Ligue o MSX2 com o disco no drive A: e o jogo inicia sozinho.
-- **Só o programa:** copie `AKALABET.COM` para um disco com MSX-DOS e digite `AKALABET`.
+- **Só o programa:** copie `AKALABET.COM` (e, de preferência, `AKALABET.DAT`) para um disco com MSX-DOS e digite `AKALABET`. Sem o `.DAT` o jogo funciona, mas sem a abertura, a ajuda ilustrada, a tela de vitória e as músicas longas.
 - **Emulador (openMSX):**
   ```
   openmsx -machine Philips_NMS_8250 -ext msxdos2 -diska akalabeth.dsk
   ```
-- **Requisitos:** MSX2, 64 KB de RAM, 64 KB de VRAM, drive de disco. **Salvar e carregar exigem MSX-DOS 2**; no MSX-DOS 1 o jogo funciona, mas essas teclas avisam "NEEDS MSX-DOS 2".
+- **Requisitos:** MSX2, 64 KB de VRAM, drive de disco. **Salvar/carregar e a RAM mapeada exigem MSX-DOS 2**; no MSX-DOS 1 essas teclas avisam "NEEDS MSX-DOS 2". As telas extras e as músicas completas pedem **256 KB** de RAM: no início o jogo lê o `AKALABET.DAT` (`LOADING...`) para a memória mapeada. Com 128 KB ou menos ele roda sem esses extras.
+- O `AUTOEXEC.BAT` do disco apaga o RAM disk do DOS 2 (`RAMDISK /D`) para liberar a memória; se você usa o `.COM` num disco seu e o RAM disk está ativo, faça o mesmo antes de iniciar o jogo.
 
-Na tela de título, qualquer tecla começa um jogo novo e **L** carrega o jogo salvo.
+Na abertura, qualquer tecla segue para o título. No título, qualquer tecla começa um jogo novo, **L** carrega o jogo salvo e **H** abre a ajuda.
 
 ## 3. Criando o personagem
 
@@ -90,6 +91,7 @@ Cada vez que você troca de andar, o andar é gerado de novo. O desenho é o mes
 | **A** | Atacar (masmorra). |
 | **ESPAÇO** | Passar o turno. |
 | **S** | Tela de status (não gasta turno). |
+| **H** (ou **?**) | Tela de ajuda com as teclas (não gasta turno). |
 | **M** | Liga/desliga a música. |
 | **W** | Salva o jogo em `AKALABET.SAV`. |
 | **L** | Carrega o jogo salvo. |
@@ -185,7 +187,13 @@ O monstro `n` só aparece a partir do andar `n − 2`, e cada um tem 40 % de cha
 
 ## 11. Música e efeitos
 
-Quatro temas originais (título, mundo, masmorra, castelo/loja) e 14 efeitos pelo PSG. **M** liga e desliga a música; os efeitos continuam.
+Cinco temas originais de 3 vozes (título, mundo, masmorra, castelo/loja e vitória) e 14 efeitos pelo PSG. Com a RAM mapeada, cada tema dura de 30 a 50 s antes de repetir; sem ela, tocam versões curtas. **M** liga e desliga a música; os efeitos continuam.
+
+![Abertura](images/intro.png)
+
+![Ajuda](images/help.png)
+
+![Vitória](images/outro.png)
 
 ## 12. Dicas
 
@@ -199,6 +207,5 @@ Quatro temas originais (título, mundo, masmorra, castelo/loja) e 14 efeitos pel
 
 ## 13. Problemas conhecidos
 
-- A música às vezes engasga (veja `docs/OUTLINE.md`).
 - O joystick ainda não foi testado em hardware real.
 - Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.

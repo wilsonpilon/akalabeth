@@ -15,3 +15,7 @@ Ajuste `SP`/`$sp` nos scripts antes de usar. Os roteiros que dependem de `AK_DEB
 (veja a tabela em `docs/OUTLINE.md`); volte para `0` antes de gerar uma release.
 
 Armadilhas conhecidas: veja a seção "Roteiro de teste no openMSX" do `docs/OUTLINE.md`.
+
+**v0.4.0 (RAM mapeada):** o `Philips_NMS_8250` tem só 128 KB (1 segmento livre no DOS 2). Para testar abertura/ajuda/vitória e as músicas longas use uma
+cópia da máquina com `<size>256</size>` no `MemoryMapper` (salve como `NMS8250_256K.xml` em `openmsx/share/machines` e passe `-Machine NMS8250_256K` ao `run.ps1`).
+Cenários novos: `scenR1` (abertura/título/ajuda), `scenR2` (ajuda no jogo + vitória; build com `AK_DEBUG 2` e `AK_DBG_TA (-10)`), `scenR4` (salvar/carregar), `scenR5` (masmorra, música, `M`, `H`; `AK_DEBUG 1`).

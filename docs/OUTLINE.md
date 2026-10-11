@@ -1,6 +1,6 @@
 # Akalabeth MSX2 — Outline técnico, status e pendências
 
-**Versão atual: 0.3.0** (11/out/2026) · Alvo: MSX2, 64 KB RAM / 64 KB VRAM, MSX-DOS 1 ou 2 · SDCC 4.6 + MSXgl
+**Versão atual: 0.4.0** (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
 
 > Este documento é o ponto de retomada do projeto: o que existe, como funciona, o que foi testado,
 > o que está pendente e o que melhorar. Atualize a seção **2. Onde estamos** a cada release.
@@ -23,10 +23,11 @@ E:\akalabeth\
 │   └── projects\akalabeth\  << o código do jogo (versionado)
 │       ├── akalabeth.c      regras, mundo, masmorra, combate, loja, castelo, títulos
 │       ├── gfx.c            paleta, primitivas, renderizador 3D, mundo, minimapa da masmorra
-│       ├── ui.c             console, HUD, entrada, motor de som (música + efeitos), RNG
+│       ├── ui.c             console, HUD, entrada, motor de som (música em fluxo + efeitos), RNG
+│       ├── ramstore.c/.h    RAM mapeada do DOS 2 (segmentos, cópia segmento <-> RAM/VRAM)
 │       ├── akalabeth.h      constantes, paleta, estado compartilhado, versão, AK_DEBUG
-│       ├── content\         data_gen.h e music_gen.h (GERADOS)
-│       └── tools\           gen_data.js, gen_music.js, mkdisk.bat/.sh, test\ (harness openMSX)
+│       ├── content\         data_gen.h e music_gen.h (GERADOS) e AKALABET.DAT (arte + música, GERADO)
+│       └── tools\           gen_data.js, gen_music.js, gen_art.js, gen_assets.sh, mkdisk.bat/.sh, test\ (harness openMSX)
 ├── dist\                    saída (akalabeth.dsk, AKALABET.COM) — não versionada
 └── msxdisk.exe              utilitário de disco (terceiros) — não versionado
 ```
@@ -39,7 +40,9 @@ E:\akalabeth\
 | `gfx.c` | Paleta de 16 cores (de 512), primitivas com troca de páginas (R#2) e HUD duplicado nas duas páginas, **escritor de texto direto na VRAM** (`blit_glyph`, em assembly), renderizador 3D preenchido, tiles do mundo (atlas na VRAM), minimapas. |
 | `ui.c` | Console de mensagens, HUD incremental, teclado (CHGET via CALSLT) e joystick, **motor de som** na interrupção (com sombra dos registros do PSG: só escreve o que mudou), gerador aleatório (xorshift16). |
 | `tools/gen_data.js` | Lê `basic.bas` e gera `content/data_gen.h`: polilinhas dos monstros e tabelas de perspectiva reparametrizadas de 280 para 256 px. |
-| `tools/gen_music.js` | Gera `content/music_gen.h` a partir de uma notação textual (`A4:3 C#5:1 R:2`). |
+| `ramstore.c` | `rs_init` (aloca segmentos), `rs_put`/`rs_get`/`rs_to_vram` (via `rs_exec`, em assembly, que troca a página 2 pela porta 0xFE com `DI`). Fica na página 0 (módulo linkado primeiro). |
+| `tools/gen_music.js` | Notação textual (`A4:3 C#5:1 R:2`) → `content/music_gen.h` (versões curtas de reserva no código) e `content/music.seg` (músicas completas). |
+| `tools/gen_art.js` | Telas pixel art 256×212 com a paleta do jogo → `content/art.seg` (e prévia PNG). `tools/gen_assets.sh` junta tudo em `AKALABET.DAT`. |
 
 ### Mapa de VRAM (SCREEN 5)
 
@@ -64,6 +67,22 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 - **Salvar/carregar** só em MSX-DOS 2 (handles). Em MSX-DOS 1 o jogo avisa.
 - **Mapas ≠ GW-BASIC:** o gerador aleatório é outro; o número da sorte reproduz o **próprio** mapa deste porte.
 
+### RAM mapeada e orçamento de memória (v0.4.0)
+
+- **Ela não acelera o desenho:** o gargalo é CPU e VDP. Serve para guardar conteúdo (telas, músicas) sem esperar o disco.
+- O `.COM` ocupa as 4 páginas da CPU (código 0x0100–0xCE55, dados até ≈0xD79C), então nenhum segmento pode ficar mapeado.
+  `rs_exec` roda na página 0 com `DI`, lê o segmento atual da página 2 (`GET_P2` da tabela de saltos do mapper), escreve na porta `0xFE`,
+  copia (`LDIR`, `OTIR` para a VRAM) e restaura. As rotinas `PUT_Pn` do DOS **não** servem: podem reabilitar interrupções com a página trocada.
+- **TPA termina em 0xDB06** (`*(u16*)0x0006`): código + dados + pilha precisam caber em ≈55 KB. Na v0.4.0 sobram ≈900 bytes de pilha.
+  Por isso o salvar/carregar não usa buffer, o `AKALABET.DAT` é lido por um buffer de 256 bytes emprestado do mapa do mundo (ainda vazio na partida) e os anéis de música têm 32 bytes por voz.
+  **Qualquer novo dado global precisa ser compensado em outro lugar.** Candidatos: remover perfis (`g_prof`, `g_tparts`), compilar partes para tamanho, mover código frio.
+- O DOS 2 cria um **RAM disk** que consome quase todo o mapper (no NMS 8250 de 128 KB sobra 1 segmento): o `AUTOEXEC.BAT` executa `RAMDISK /D`.
+  Em 128 KB mesmo sem RAM disk faltam segmentos (o jogo pede 7 + 2 de folga) e o jogo segue sem os extras.
+- **Formato do `AKALABET.DAT`:** 7 segmentos de 16 KB: 3 telas (2 segmentos cada: linhas 0–127, linhas 128–211) e o segmento de música
+  (`[n] [velocidade, off/len das 3 vozes] × n` + trilhas de pares `(nota, duração)`). Índices em `akalabeth.h` (`ART_*`, `MUS_SEG`).
+- **Música em fluxo:** a interrupção lê pares (nota, duração) de 3 anéis de 32 bytes; `music_pump` (chamada em `ui_sfx_update`, nos laços de espera) reabastece
+  do segmento (ou da trilha curta embutida, sem mapper). Anel vazio = pausa de 1 tick, sem travar.
+
 ### Desvios do listing original (intencionais)
 
 1. Laço infinito do ladrão sem item (linha 4620): corrigido.
@@ -73,7 +92,7 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 
 ---
 
-## 2. Onde estamos (v0.3.0)
+## 2. Onde estamos (v0.4.0)
 
 ### Pronto e testado no emulador (openMSX, Philips NMS 8250, MSX-DOS 2)
 
@@ -85,7 +104,8 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 - [x] Armadilha, buraco, escada, baú, mímico, ladrão, gremlin.
 - [x] Castelo, missões, cavaleiro (Lord), tela de morte.
 - [x] Salvar/carregar (`W`/`L`, título com `L`); avisos "NO SAVE" e "NEEDS DOS2".
-- [x] Música (4 temas, 3 vozes) e 14 efeitos pelo PSG; `M` liga/desliga.
+- [x] Música (5 temas de 3 vozes, 30–50 s cada com RAM mapeada) e 14 efeitos pelo PSG; `M` liga/desliga.
+- [x] **RAM mapeada** (v0.4.0): abertura, ajuda (`H`), tela de vitória, músicas longas; com fallback sem mapper.
 - [x] Saída para o DOS (`ESC`) restaurando texto e paleta; gancho de interrupção restaurado.
 - [x] Disco de 720 KB (`msxdisk.exe`) que inicia sozinho.
 
@@ -122,7 +142,9 @@ Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os n�
 
 | # | Problema | Notas |
 | --- | --- | --- |
-| 1 | **A música às vezes "pica" (engasga).** | Reportado pelo usuário em 10/out/2026 (não reproduzido em medições). Ver hipóteses abaixo. |
+| 1 | ~~A música às vezes "pica".~~ | **Resolvido na v0.3.0** segundo o usuário ("a música fluiu bem"). Reavaliar com as músicas em fluxo da v0.4.0 (o anel esvazia se o laço principal ficar >2,5 s sem chamar `music_pump`). |
+| 8 | **Memória do programa quase esgotada** (TPA até 0xDB06; sobram ≈900 bytes de pilha). | Ver "RAM mapeada e orçamento de memória". |
+| 9 | Em MSX2 de 128 KB faltam segmentos livres: sem abertura/ajuda ilustrada/vitória, músicas curtas. | Só a arte poderia caber (6 segmentos); decidir se vale um modo "só ajuda". |
 | 2 | Passo na masmorra ainda leva ~0,55 s. | O que sobra é o desenho do 3D (CPU: cálculo e comandos do VDP). Falta um perfil por função (usar `out/*.sym`, que inclui as `static`). |
 | 3 | Os tiles do mundo ficaram com 44 linhas (antes 50): a base das montanhas e das casas aparece mais curta. | Consequência de guardar o atlas na página 0 (linhas 212–255). |
 | 4 | `build.bat` do MSXgl falha na etapa do disco (`msxtar --size=720K`). | Inofensivo; use `tools/mkdisk.bat`. |
@@ -130,7 +152,7 @@ Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os n�
 | 6 | Aplicam-se float → inteiro: HP/2 no backfire arredonda para baixo. | Diferenças mínimas do BASIC. |
 | 7 | Sprites desativados (tabelas colidem com o atlas). | Se algum dia usar sprites, mover o atlas. |
 
-### Música picotando — hipóteses (investigar na próxima sessão)
+### Música picotando — hipóteses (histórico; problema considerado resolvido na v0.3.0)
 
 1. **Ticks perdidos pela flag `g_psgBusy`.** `ui_pollkey` liga a flag durante as chamadas BIOS ao joystick (`GTSTCK`/`GTTRIG`, 4 `CALSLT` por poll). Se a interrupção cai nessa janela, `snd_tick` retorna sem avançar a música: o andamento oscila. **Correção provável:** ler o joystick (porta 14/15 do PSG) dentro da própria interrupção, ou adiar só a escrita (não o avanço da música).
 2. **Seções longas com interrupções desabilitadas** (`DI`) em rotinas de VDP/BIOS (comandos do VDP, CALSLT). Medir quantas interrupções são atendidas atrasadas (`g_sndTicks` vs. `g_JIFFY`).
@@ -145,16 +167,16 @@ Instrumentar primeiro: contador de ticks pulados por `g_psgBusy`, duração máx
 ## 4. Roadmap sugerido
 
 **Próxima sessão (curto prazo)**
-1. Diagnosticar e corrigir a **música picotando** (seção 3). A sombra do PSG da v0.3.0 reduz o trabalho da interrupção, mas ainda **não foi verificado** se isso resolve; instrumentar `g_psgBusy`.
+1. Confirmar no uso real (e no hardware) que as músicas longas em fluxo não engasgam; instrumentar anéis vazios (contador de subexecução).
 2. **Perfil por função do 3D** (amostrar o PC e atribuir com `out/akalabeth.sym`, que traz as funções `static`) e atacar os maiores custos. O passo da masmorra ainda é ~0,55 s.
 3. Repetir a regressão completa (loja, amuleto, armadilha, mímico, ESC) na v0.3.0.
 4. Testar **joystick** e **60 Hz**; testar em MSX2 real.
 
 **Médio prazo**
-5. Usar a **RAM mapeada** (256 KB) do DOS 2 para guardar recursos (abertura, tiles, música maior) e carregar do disco.
-6. Música mais longa e com percussão (canal de ruído); efeitos extras (portas, magia).
+5. ~~Usar a RAM mapeada~~ (feito na v0.4.0: abertura, ajuda, vitória, música longa). Próximo: mais telas (morte, loja com arte), compressão RLE das imagens (carga do disco), mais músicas (loja, combate).
+6. Percussão (canal de ruído) na música; efeitos extras (portas, magia). **Antes, liberar memória do programa** (seção "orçamento").
 7. Opção de salvar a preferência de música/volume junto do jogo.
-8. Tela de abertura/encerramento, telas de ajuda (`H`), rolagem de mensagens.
+8. Rolagem de mensagens.
 
 **Longo prazo**
 9. **Porte para PC em Go** reaproveitando regras e dados: separar o núcleo de regras (já isolado em `akalabeth.c`) e tornar `gen_data.js`/`gen_music.js` geradores de dados neutros (JSON).
@@ -169,11 +191,11 @@ Instrumentar primeiro: contador de ticks pulados por `g_psgBusy`, duração máx
 build.bat                         -> out/akalabeth.com   (ignore o erro da etapa de disco)
 tools/mkdisk.bat                  -> dist/akalabeth.dsk + dist/AKALABET.COM
 
-# regenerar dados (só se mudar o basic.bas ou a música)
+# regenerar dados (só se mudar o basic.bas, a música ou a arte)
 node tools/gen_data.js ../../../basic.bas content/data_gen.h
-node tools/gen_music.js content/music_gen.h
+bash tools/gen_assets.sh [dir-png]   -> content/music_gen.h + content/AKALABET.DAT (dir-png: prévias das telas)
 
-# rodar
+# rodar (o NMS 8250 original tem só 128 KB: para testar os extras use uma cópia da máquina com <size>256</size>)
 openmsx -machine Philips_NMS_8250 -ext msxdos2 -diska dist/akalabeth.dsk
 ```
 

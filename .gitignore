@@ -21,3 +21,6 @@
 Thumbs.db
 .DS_Store
 *.tmp
+
+# intermediarios dos geradores de assets
+/MSXgl/projects/akalabeth/content/*.seg

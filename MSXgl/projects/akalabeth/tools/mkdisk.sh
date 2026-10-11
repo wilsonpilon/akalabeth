@@ -9,10 +9,11 @@ MSXDISK="$ROOT/msxdisk.exe"
 mkdir -p "$DIST/stage" && cd "$DIST/stage" || exit 1
 rm -f ./* ../akalabeth.dsk
 cp "$PROJ/out/akalabeth.com" AKALABET.COM
-printf 'AKALABET\r\n' > AUTOEXEC.BAT
+cp "$PROJ/content/AKALABET.DAT" AKALABET.DAT
+printf 'RAMDISK /D\r\nAKALABET\r\n' > AUTOEXEC.BAT
 cp "$DOS/COMMAND2.COM" "$DOS/MSXDOS2.SYS" .
 "$MSXDISK" create ../akalabeth.dsk
-"$MSXDISK" add ../akalabeth.dsk AUTOEXEC.BAT AKALABET.COM COMMAND2.COM MSXDOS2.SYS
-cp AKALABET.COM ..
+"$MSXDISK" add ../akalabeth.dsk AUTOEXEC.BAT AKALABET.COM AKALABET.DAT COMMAND2.COM MSXDOS2.SYS
+cp AKALABET.COM AKALABET.DAT ..
 cd .. && rm -rf stage
 "$MSXDISK" list akalabeth.dsk -l

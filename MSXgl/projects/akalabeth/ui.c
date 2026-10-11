@@ -211,14 +211,24 @@ static const SfxStep* const sfx_table[14] =
 	sfx_down, sfx_up, sfx_death, sfx_magic, sfx_select, sfx_buy, sfx_fan
 };
 
-typedef struct { const u8* p; u8 left; u16 period; u8 age; u8 vol; u8 on; } Voice;
+typedef struct { u8 left; u16 period; u8 age; u8 vol; u8 on; } Voice;
 
 static const SfxStep* volatile s_sfx = 0;		// effect being played (0 = none)
 static volatile u8 s_sfxLeft = 0;
-static const MusicSong* s_song = 0;
 static volatile bool s_musicOn = TRUE;
-static volatile u8 s_newSong = 0xFF;			// song requested by the main program (0xFF = none, 0xFE = stop)
 static u8 s_curSong = 0xFF;
+
+// Music data is streamed: each voice reads (note, length) pairs from a small ring buffer that the main program
+// keeps topped up (music_pump) from the RAM store, or from the short built-in song when there is no mapper RAM.
+#define RING			32
+static u8 s_ring[3][RING];
+static volatile u8 s_rd[3];						// read index (interrupt)
+static volatile u8 s_wr[3];						// write index (main program)
+static volatile u8 s_run = 0;					// 1 = a song is playing
+static volatile u8 s_start = 0;					// 1 = (re)start the voices on the next tick
+static volatile u8 s_speed = 8;
+static u16 s_soff[3], s_slen[3], s_spos[3];		// stream: offset in the music segment (or in the built-in track), length, position
+static bool s_ram = FALSE;						// stream comes from the RAM store
 static Voice s_voice[3];
 static bool s_hz50 = TRUE;
 static u8 s_skip = 0;
@@ -262,18 +272,11 @@ void snd_tick(void)
 	if (g_psgBusy) return;
 	if (!s_hz50 && ++s_skip >= 6) { s_skip = 0; return; }		// keep the tempo identical on 60 Hz machines
 
-	// song change request
-	u8 req = s_newSong;
-	if (req != 0xFF)
+	// song start (the rings were filled by music_play)
+	if (s_start)
 	{
-		s_newSong = 0xFF;
-		if (req == 0xFE) { s_song = 0; s_curSong = 0xFF; }
-		else if (req != s_curSong)
-		{
-			const MusicSong* sg = &g_Songs[req];
-			s_song = sg; s_curSong = req;
-			for (u8 i = 0; i < 3; i++) { s_voice[i].p = sg->tr[i]; s_voice[i].left = 0; s_voice[i].vol = 0; s_voice[i].age = 0; s_voice[i].on = 0; }
-		}
+		s_start = 0;
+		for (u8 i = 0; i < 3; i++) { s_voice[i].left = 0; s_voice[i].vol = 0; s_voice[i].age = 0; s_voice[i].on = 0; }
 	}
 
 	u16 tone[3];
@@ -284,22 +287,28 @@ void snd_tick(void)
 	u8 mix = 0x38;												// tones on, noise off (bits 3-5 = 1)
 
 	// music: a voice only does real work when a note starts or its envelope steps
-	if (s_song && s_musicOn)
+	if (s_run && s_musicOn)
 	{
-		u8 sp = s_song->speed;
+		u8 sp = s_speed;
 		for (u8 i = 0; i < 3; i++)
 		{
 			Voice* v = &s_voice[i];
 			if (v->left == 0)
 			{
-				const u8* p = v->p;
-				if (p[0] == 0xFF) p = s_song->tr[i];			// loop
-				u8 n = p[0];
-				v->left = p[1] * sp;
-				v->p = p + 2;
-				v->age = 0;
-				v->on = (n != 0);
-				if (n) { v->period = g_NotePeriod[n]; v->vol = env_vol(i, 0, v->left); }
+				u8 r = s_rd[i];
+				if (r == s_wr[i])								// ring empty (main program is busy): rest a tick
+				{
+					v->left = 1; v->age = 0; v->on = 0;
+				}
+				else
+				{
+					u8 n = s_ring[i][r];
+					v->left = s_ring[i][r + 1] * sp;
+					s_rd[i] = (r + 2) & (RING - 1);
+					v->age = 0;
+					v->on = (n != 0);
+					if (n) { v->period = g_NotePeriod[n]; v->vol = env_vol(i, 0, v->left); }
+				}
 			}
 			else
 			{
@@ -411,10 +420,71 @@ void ui_beep(u8 kind)
 	__asm__("ei");
 }
 
-void ui_sfx_update(void) { }			// effects are now played by the interrupt routine
+void ui_sfx_update(void) { music_pump(); }	// effects are played by the interrupt routine; this keeps the music streams filled
 
-void music_play(u8 id)  { s_newSong = id; }
-void music_stop(void)   { s_newSong = 0xFE; }
+// Tops up the ring buffers (main program, called from the idle loops)
+void music_pump(void)
+{
+	if (!s_run) return;
+	for (u8 i = 0; i < 3; i++)
+	{
+		u8 room = (u8)(s_rd[i] - s_wr[i] - 2) & (RING - 1);		// keep 2 bytes free: full and empty must differ
+		room &= 0xFE;
+		while (room)
+		{
+			u16 n = s_slen[i] - s_spos[i];
+			u8 w = s_wr[i];
+			if (n > room) n = room;
+			if (n > (u16)(RING - w)) n = RING - w;
+			if (s_ram) rs_get(MUS_SEG, s_soff[i] + s_spos[i], &s_ring[i][w], n);
+			else { const u8* src = g_Songs[s_curSong].tr[i] + s_spos[i]; for (u16 k = 0; k < n; k++) s_ring[i][w + k] = src[k]; }
+			s_spos[i] += n;
+			if (s_spos[i] >= s_slen[i]) s_spos[i] = 0;				// loop
+			s_wr[i] = (w + n) & (RING - 1);
+			room -= (u8)n;
+		}
+	}
+}
+
+void music_stop(void)
+{
+	__asm__("di");
+	s_run = 0;
+	__asm__("ei");
+	s_curSong = 0xFF;
+}
+
+void music_play(u8 id)
+{
+	if (id == s_curSong) return;
+	music_stop();
+	s_curSong = id;
+	if (g_rsOk)
+	{
+		u8 h[13];
+		rs_get(MUS_SEG, 1 + 13 * id, h, 13);
+		s_speed = h[0];
+		for (u8 i = 0; i < 3; i++) { s_soff[i] = h[1 + i * 4] | (h[2 + i * 4] << 8); s_slen[i] = h[3 + i * 4] | (h[4 + i * 4] << 8); }
+		s_ram = TRUE;
+	}
+	else
+	{
+		const MusicSong* sg = &g_Songs[id];
+		s_speed = sg->speed;
+		for (u8 i = 0; i < 3; i++)
+		{
+			u16 n = 0; while (sg->tr[i][n] != 0xFF) n += 2;		// length without the terminator
+			s_slen[i] = n;
+		}
+		s_ram = FALSE;
+	}
+	for (u8 i = 0; i < 3; i++) { s_rd[i] = 0; s_wr[i] = 0; s_spos[i] = 0; }
+	__asm__("di");
+	s_start = 1;											// the voices rest until the pump has put data in the rings
+	s_run = 1;
+	__asm__("ei");
+	music_pump();
+}
 bool music_toggle(void) { s_musicOn = !s_musicOn; return s_musicOn; }
 
 volatile u8 g_keywait;			// incremented each time the game waits for a key (used by automated tests)

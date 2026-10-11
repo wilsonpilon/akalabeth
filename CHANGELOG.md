@@ -2,6 +2,31 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em [SemVer](https://semver.org/).
 
+## [0.4.0] — 2026-10-11
+
+### Adicionado
+- **Uso da RAM mapeada (256 KB) do MSX-DOS 2.** Novo módulo `ramstore` aloca segmentos de 16 KB e copia dados segmento ↔ RAM/VRAM
+  com a página 2 trocada só durante a cópia (interrupções desligadas; a rotina fica na página 0). O programa ocupa as 4 páginas da CPU,
+  por isso os segmentos nunca ficam mapeados.
+- **`AKALABET.DAT`** (112 KB, gerado por `tools/gen_assets.sh`): 3 telas pixel art de 256×212 (abertura, ajuda, vitória) e o segmento de música.
+  Carregado do disco para a RAM mapeada na partida (`LOADING...`); se faltar o arquivo, o mapper ou memória, o jogo segue sem os extras.
+- **Tela de abertura** (castelo ao luar) ao iniciar; **tela de ajuda** (tecla `H`, também no título); **tela de vitória** (aurora sobre o castelo) ao ser sagrado Lord, com tema novo (`VICTORY`).
+- **Músicas longas** (24 compassos, 30–50 s; antes 8 compassos): cada tema ganhou uma seção B e volta à A. As trilhas são lidas aos poucos
+  da RAM mapeada para um anel de 32 bytes por voz (`music_pump`), então a interrupção só lê RAM comum.
+  Sem RAM mapeada, tocam as versões curtas embutidas no código.
+- `tools/gen_art.js` (pixel art em JS, com paleta do jogo e prévia PNG), `tools/gen_assets.sh`.
+
+### Alterado
+- Salvar/carregar sem o buffer de 1248 bytes: o arquivo (mesmo formato `AKS1`) é gravado/lido em blocos direto das variáveis do jogo.
+  Motivo: o **TPA do MSX-DOS 2 termina em 0xDB06** (≈55 KB para código + dados + pilha); a memória do programa está praticamente esgotada.
+- `AUTOEXEC.BAT` do disco executa `RAMDISK /D` antes do jogo: com o RAM disk padrão do DOS 2, quase nenhum segmento fica livre.
+- Título: dicas de teclas `ANY KEY:NEW / L: LOAD / H: HELP`.
+- Versão 0.4.0.
+
+### Medido e verificado (11/out/2026, openMSX, NMS 8250 com 256 KB)
+- Abertura, ajuda (título e jogo), vitória, 5 músicas (40+ s sem engasgo, transição masmorra/mundo), salvar/carregar após a mudança de formato de E/S.
+- Máquina de 128 KB (NMS 8250 original, 1 segmento livre): o jogo inicia direto no título, com as músicas curtas.
+
 ## [0.3.0] — 2026-10-11
 
 ### Alterado (desempenho)

@@ -246,13 +246,22 @@ typedef struct
 	i8  px, py, dx, dy;
 	i16 stat[6], inv[6];
 	c8  name[24];
-	u8  te[MAPW][MAPW], seen[MAPW][MAPW], dn[DUNW][DUNW], dseen[DUNW][DUNW];
-	u8  alive[11];
-	i16 hp[11];
-	i8  mx[11], my[11];
-} SaveData;
+} SaveData;							// file = this header, then te, seen, dn, dseen, alive, hp, ml_x, ml_y
 
 static SaveData s_sv;
+
+static bool sv_io(u8 h, void* p, u16 n, bool wr)
+{
+	return (wr ? DOS_WriteHandle(h, p, n) : DOS_ReadHandle(h, p, n)) == n;
+}
+
+static bool sv_body(u8 h, bool wr)
+{
+	return sv_io(h, g_te, sizeof(g_te), wr) && sv_io(h, g_seen, sizeof(g_seen), wr)
+		&& sv_io(h, g_dn, sizeof(g_dn), wr) && sv_io(h, g_dseen, sizeof(g_dseen), wr)
+		&& sv_io(h, mz_alive, sizeof(mz_alive), wr) && sv_io(h, mz_hp, sizeof(mz_hp), wr)
+		&& sv_io(h, ml_x, sizeof(ml_x), wr) && sv_io(h, ml_y, sizeof(ml_y), wr);
+}
 
 static bool dos_is_2(void)
 {
@@ -269,6 +278,70 @@ static u8 mem_copy(void* dst, const void* src, u16 n)
 	return 0;
 }
 
+// ---------------------------------------------------------------------------
+// RAM store: pictures from AKALABET.DAT are kept in mapper segments (see ramstore.c)
+#define ASSET_FILE		"AKALABET.DAT"
+#define ABUF_SIZE		256
+
+static void assets_load(void)
+{
+	if (!dos_is_2() || !rs_init(ART_SEGS)) return;
+	u8* abuf = &g_te[0][0];							// RAM is tight (TPA ends at 0xDB06): the world map is still unused at start-up
+	u8 h = DOS_OpenHandle(ASSET_FILE, O_RDONLY);
+	if (h == HANDLE_INVALID) { rs_free(); return; }
+	gfx_text_c(100, "LOADING...", C_CREAM, C_BLACK);
+	for (u8 s = 0; s < ART_SEGS; s++)
+		for (u8 c = 0; c < RS_SEG_BYTES / ABUF_SIZE; c++)
+		{
+			if (DOS_ReadHandle(h, abuf, ABUF_SIZE) != ABUF_SIZE) { DOS_CloseHandle(h); rs_free(); return; }
+			rs_put(s, c * ABUF_SIZE, abuf, ABUF_SIZE);
+		}
+	DOS_CloseHandle(h);
+	for (u16 i = 0; i < ABUF_SIZE; i++) abuf[i] = 0;
+}
+
+static void intro_screen(void)
+{
+	if (!g_rsOk) return;
+	music_play(MUS_TITLE);
+	fade_out();
+	gfx_art(ART_INTRO);
+	gfx_text_big(33, 8, "AKALABETH", 3, C_GOLD);
+	gfx_text_c(38, "WORLD OF DOOM", C_CREAM, C_BLACK);
+	gfx_text_c(200, "PRESS ANY KEY", C_CREAM, C_BLACK);
+	fade_in();
+	ui_getkey();
+}
+
+typedef struct { const c8* t; u8 c; } HelpLine;
+static const HelpLine k_help[13] =
+{
+	{ "MOVEMENT", C_GOLD },
+	{ "WORLD: ARROWS GO N/E/S/W", C_WHITE },
+	{ "DUNGEON: UP=WALK  LEFT/RIGHT=TURN", C_WHITE },
+	{ "         DOWN=TURN AROUND", C_WHITE },
+	{ "ACTIONS", C_GOLD },
+	{ "ENTER  TOWN, DUNGEON, CASTLE, LADDER", C_WHITE },
+	{ "A  ATTACK, THEN R/A/S/B/M = WEAPON", C_WHITE },
+	{ "SPACE  PASS    S  STATUS    H  HELP", C_WHITE },
+	{ "GAME", C_GOLD },
+	{ "W SAVE   L LOAD   M MUSIC   P PAUSE", C_WHITE },
+	{ "ESC  QUIT TO DOS", C_WHITE },
+	{ "BUY FOOD FIRST. A MOVING CHEST BITES!", C_GRASS },
+	{ "KILL THE KING'S MONSTER, THEN RETURN.", C_GRASS },
+};
+
+static void help_screen(void)
+{
+	fade_out();
+	if (!gfx_art(ART_HELP)) gfx_page(0);
+	gfx_text_c(14, "HOW TO PLAY", C_GOLD, C_BLACK);
+	for (u8 i = 0; i < 13; i++) gfx_text(14, 38 + i * 10, k_help[i].t, k_help[i].c, C_BLACK);
+	gfx_text_c(194, "PRESS ANY KEY", C_CREAM, C_BLACK);
+	fade_in();
+	ui_getkey();
+}
+
 // returns 0 = ok, 1 = needs MSX-DOS 2, 2 = disk error
 static u8 save_game(void)
 {
@@ -280,15 +353,11 @@ static u8 save_game(void)
 	p->px = g_px; p->py = g_py; p->dx = g_dx; p->dy = g_dy;
 	mem_copy(p->stat, g_stat, sizeof(g_stat)); mem_copy(p->inv, g_inv, sizeof(g_inv));
 	mem_copy(p->name, g_name, sizeof(g_name));
-	mem_copy(p->te, g_te, sizeof(g_te)); mem_copy(p->seen, g_seen, sizeof(g_seen));
-	mem_copy(p->dn, g_dn, sizeof(g_dn)); mem_copy(p->dseen, g_dseen, sizeof(g_dseen));
-	mem_copy(p->alive, mz_alive, sizeof(mz_alive)); mem_copy(p->hp, mz_hp, sizeof(mz_hp));
-	mem_copy(p->mx, ml_x, sizeof(ml_x)); mem_copy(p->my, ml_y, sizeof(ml_y));
 	u8 h = DOS_CreateHandle(SAVE_FILE, O_WRONLY, 0);
 	if (h == HANDLE_INVALID) return 2;
-	u16 w = DOS_WriteHandle(h, p, sizeof(SaveData));
+	bool ok = sv_io(h, p, sizeof(SaveData), TRUE) && sv_body(h, TRUE);
 	DOS_CloseHandle(h);
-	return (w == sizeof(SaveData)) ? 0 : 2;
+	return ok ? 0 : 2;
 }
 
 // returns 0 = ok, 1 = needs MSX-DOS 2, 2 = no (valid) save file
@@ -298,18 +367,19 @@ static u8 load_game(void)
 	SaveData* p = &s_sv;
 	u8 h = DOS_OpenHandle(SAVE_FILE, O_RDONLY);
 	if (h == HANDLE_INVALID) return 2;
-	u16 r = DOS_ReadHandle(h, p, sizeof(SaveData));
+	if (!sv_io(h, p, sizeof(SaveData), FALSE) || p->magic[0] != 'A' || p->magic[1] != 'K' || p->magic[2] != 'S' || p->magic[3] != '1')
+	{
+		DOS_CloseHandle(h);
+		return 2;
+	}
+	bool ok = sv_body(h, FALSE);
 	DOS_CloseHandle(h);
-	if (r != sizeof(SaveData) || p->magic[0] != 'A' || p->magic[1] != 'K' || p->magic[2] != 'S' || p->magic[3] != '1') return 2;
+	if (!ok) return 2;
 	s_ln = p->ln; g_rngState = p->rng ? p->rng : 1; s_luck = (i16)p->luck; s_ta = p->ta;
 	s_pause = p->pause; g_lp = p->lp; g_class = p->cls; g_in = p->in; g_tx = p->tx; g_ty = p->ty;
 	g_px = p->px; g_py = p->py; g_dx = p->dx; g_dy = p->dy;
 	mem_copy(g_stat, p->stat, sizeof(g_stat)); mem_copy(g_inv, p->inv, sizeof(g_inv));
 	mem_copy(g_name, p->name, sizeof(g_name));
-	mem_copy(g_te, p->te, sizeof(g_te)); mem_copy(g_seen, p->seen, sizeof(g_seen));
-	mem_copy(g_dn, p->dn, sizeof(g_dn)); mem_copy(g_dseen, p->dseen, sizeof(g_dseen));
-	mem_copy(mz_alive, p->alive, sizeof(mz_alive)); mem_copy(mz_hp, p->hp, sizeof(mz_hp));
-	mem_copy(ml_x, p->mx, sizeof(ml_x)); mem_copy(ml_y, p->my, sizeof(ml_y));
 	gfx_dmap_rebuild();
 	return 0;
 }
@@ -803,12 +873,25 @@ static void castle(void)
 	ui_beep(SFX_FANFARE);
 	if (-s_ta == 10)
 	{
-		gfx_page("KNIGHTHOOD");
 		c8 nm[30] = "LORD ";
 		u8 n = 5; for (u8 i = 0; g_name[i] && n < 28; i++) nm[n++] = g_name[i];
 		nm[n] = 0;
 		for (u8 i = 0; i < 24; i++) g_name[i] = nm[i];
 		g_name[23] = 0;
+		fade_out();
+		if (gfx_art(ART_OUTRO))
+		{
+			music_play(MUS_VICTORY);
+			gfx_text_c(8, "HAIL TO THE NEW LORD", C_GOLD, C_BLACK);
+			gfx_text_c(20, g_name, C_WHITE, C_BLACK);
+			gfx_text_c(34, "SLAYER OF THE BALROG", C_CREAM, C_BLACK);
+			gfx_text_c(200, "PRESS ANY KEY", C_CREAM, C_BLACK);
+			fade_in();
+			ui_getkey();
+			fade_out();
+			music_play(MUS_COURT);
+		}
+		gfx_page("KNIGHTHOOD");
 		pcenter(3, g_name, C_GOLD);
 		pline(5, "THOU HAST PROVED THYSELF WORTHY", C_CREAM);
 		pline(6, "OF KNIGHTHOOD, CONTINUE PLAY IF THOU", C_CREAM);
@@ -827,6 +910,7 @@ static void castle(void)
 			c8 b[4]; num2s(g_lp + 1, b);
 			pline(12, b, C_WHITE);
 		}
+		fade_in();
 		wait_key_msg(190, "PRESS -SPACE- TO CONT.");
 		for (u8 i = 0; i < 6; i++) g_stat[i]++;
 		return;
@@ -1047,6 +1131,11 @@ static u8 do_command(u8 k)
 		s_pause = !s_pause;
 		con_puts(s_pause ? "PAUSE ON" : "PAUSE OFF", C_WHITE);
 		return 0;
+	case 'H': case 'h': case '?':
+		help_screen();
+		s_fade = TRUE;
+		draw_scene();
+		return 2;
 	case 'M': case 'm':
 		con_puts(music_toggle() ? "MUSIC ON" : "MUSIC OFF", C_WHITE);
 		return 0;
@@ -1145,6 +1234,7 @@ static void game_loop(void)
 //=============================================================================
 static bool title_screen(void)
 {
+again:
 	music_play(MUS_TITLE);
 	// demo corridor rendered with the real 3D engine
 	for (u8 x = 0; x < DUNW; x++) for (u8 y = 0; y < DUNW; y++) g_dn[x][y] = 1;
@@ -1173,15 +1263,16 @@ static bool title_screen(void)
 	gfx_text(CON_X, CON_Y + 18, "GW-BASIC PORT", C_GOLD, C_NAVY);
 	gfx_text(CON_X, CON_Y + 26, "NANOCHESS, 2019", C_WHITE, C_NAVY);
 	gfx_text(CON_X, CON_Y + 36, "MSX2 PORT: MSXGL + SDCC", C_GRASS, C_NAVY);
-	gfx_text(181, 169, "PRESS ANY", C_CREAM, C_NAVY);
-	gfx_text(181, 178, "KEY, OR L", C_CREAM, C_NAVY);
-	gfx_text(181, 187, "TO LOAD", C_GOLD, C_NAVY);
+	gfx_text(181, 169, "ANY KEY:NEW", C_CREAM, C_NAVY);
+	gfx_text(181, 178, "L: LOAD", C_GOLD, C_NAVY);
+	gfx_text(181, 187, "H: HELP", C_GRASS, C_NAVY);
 	gfx_text(181, 198, "V" AK_VERSION " DOS2", C_ST4, C_NAVY);
 	fade_in();
 	g_dmapon = true;
 	for (;;)
 	{
 		u8 k = ui_getkey();
+		if (k == 'H' || k == 'h') { help_screen(); goto again; }
 		if (k != 'L' && k != 'l') break;
 		u8 r = load_game();
 		if (r == 0) { s_fade = TRUE; return TRUE; }
@@ -1322,6 +1413,8 @@ void main()
 {
 	gfx_init();
 	ui_init();
+	assets_load();
+	intro_screen();
 	for (;;)
 	{
 		if (!title_screen()) create_character();
@@ -1333,5 +1426,6 @@ void main()
 	gfx_restore_palette();
 	ui_text_mode();
 	snd_shutdown();
+	rs_free();
 	DOS_Exit0();
 }
