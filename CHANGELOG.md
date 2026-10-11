@@ -16,6 +16,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em 
   Sem RAM mapeada, tocam as versões curtas embutidas no código.
 - `tools/gen_art.js` (pixel art em JS, com paleta do jogo e prévia PNG), `tools/gen_assets.sh`.
 
+### Corrigido
+- Música "enroscando" ao andar na masmorra: os efeitos só de ruído (passo, golpe, erro) substituíam a melodia no canal A; agora o ruído é somado e a melodia continua.
+
 ### Alterado
 - Salvar/carregar sem o buffer de 1248 bytes: o arquivo (mesmo formato `AKS1`) é gravado/lido em blocos direto das variáveis do jogo.
   Motivo: o **TPA do MSX-DOS 2 termina em 0xDB06** (≈55 KB para código + dados + pilha); a memória do programa está praticamente esgotada.
