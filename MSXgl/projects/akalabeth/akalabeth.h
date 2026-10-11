@@ -9,7 +9,7 @@
 #include "msxgl.h"
 #include "ramstore.h"
 
-#define AK_VERSION		"0.4.0"
+#define AK_VERSION		"0.4.1"
 
 // Debug start: begin directly in dungeon level 1 with a rat in front (test builds only)
 #define AK_DEBUG		0

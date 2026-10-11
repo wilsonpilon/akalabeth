@@ -1,4 +1,4 @@
-# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.4.0)
+# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.4.1)
 
 ![Título](images/title.png)
 

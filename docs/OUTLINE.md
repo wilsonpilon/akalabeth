@@ -1,6 +1,6 @@
 # Akalabeth MSX2 — Outline técnico, status e pendências
 
-**Versão atual: 0.4.0** (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
+**Versão atual: 0.4.1** (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
 
 > Este documento é o ponto de retomada do projeto: o que existe, como funciona, o que foi testado,
 > o que está pendente e o que melhorar. Atualize a seção **2. Onde estamos** a cada release.
@@ -73,7 +73,7 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 - O `.COM` ocupa as 4 páginas da CPU (código 0x0100–0xCE55, dados até ≈0xD79C), então nenhum segmento pode ficar mapeado.
   `rs_exec` roda na página 0 com `DI`, lê o segmento atual da página 2 (`GET_P2` da tabela de saltos do mapper), escreve na porta `0xFE`,
   copia (`LDIR`, `OTIR` para a VRAM) e restaura. As rotinas `PUT_Pn` do DOS **não** servem: podem reabilitar interrupções com a página trocada.
-- **TPA termina em 0xDB06** (`*(u16*)0x0006`): código + dados + pilha precisam caber em ≈55 KB. Na v0.4.0 sobram ≈900 bytes de pilha.
+- **TPA termina em 0xDB06** (`*(u16*)0x0006`): código + dados + pilha precisam caber em ≈55 KB. Na v0.4.0 sobravam ≈900 bytes de pilha; na v0.4.1 sobram ≈3,4 KB (tabela `g_Div88` removida), mas os cheats e novos recursos vão consumindo.
   Por isso o salvar/carregar não usa buffer, o `AKALABET.DAT` é lido por um buffer de 256 bytes emprestado do mapa do mundo (ainda vazio na partida) e os anéis de música têm 32 bytes por voz.
   **Qualquer novo dado global precisa ser compensado em outro lugar.** Candidatos: remover perfis (`g_prof`, `g_tparts`), compilar partes para tamanho, mover código frio.
 - O DOS 2 cria um **RAM disk** que consome quase todo o mapper (no NMS 8250 de 128 KB sobra 1 segmento): o `AUTOEXEC.BAT` executa `RAMDISK /D`.
@@ -92,7 +92,7 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 
 ---
 
-## 2. Onde estamos (v0.4.0)
+## 2. Onde estamos (v0.4.1)
 
 ### Pronto e testado no emulador (openMSX, Philips NMS 8250, MSX-DOS 2)
 

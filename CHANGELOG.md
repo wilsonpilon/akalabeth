@@ -2,7 +2,11 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em [SemVer](https://semver.org/).
 
-## [0.4.1] — não lançada
+## [0.4.1] — 2026-10-11
+
+### Alterado
+- Manual e livreto: o **buraco no chão não derruba** (só desce com `ENTER`); a **armadilha** é invisível e derruba sozinha; posições das escadas por andar (valem para qualquer classe).
+- Livreto ilustrado em PDF (`docs/manual-msx.pdf` e `manual-msx-impressao.pdf`), incluído no pacote da release.
 
 ### Removido
 - **Tabela `g_Div88`** (3,4 KB): a divisão em ponto fixo 8.8 das perspectivas dos monstros agora é calculada. Libera memória do programa (margem de pilha de ~0,9 KB para ~3,4 KB).

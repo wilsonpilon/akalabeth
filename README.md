@@ -1,6 +1,6 @@
 # AKALABETH — World of Doom (MSX2 / MSX-DOS 2)
 
-**v0.4.0** · porte do clássico RPG de masmorras de 1979 para **MSX2**, em C com **SDCC + MSXgl**,
+**v0.4.1** · porte do clássico RPG de masmorras de 1979 para **MSX2**, em C com **SDCC + MSXgl**,
 como programa `.COM` do MSX-DOS 2 (SCREEN 5, 256×212, paleta própria de 16 cores, música e efeitos pelo PSG).
 
 *English: a faithful but colourful MSX2 port of Richard Garriott's 1979 Akalabeth (3D wireframe dungeons rebuilt as filled, shaded views),
@@ -56,7 +56,7 @@ Veja **[docs/OUTLINE.md](docs/OUTLINE.md)** (arquitetura, o que foi testado, pro
 [CHANGELOG](CHANGELOG.md). Resumo:
 
 - ✅ Jogo completo e jogável de ponta a ponta no emulador (MSX-DOS 2).
-- ⚠️ **Música ainda precisa de refinamento:** na v0.4.0 as músicas longas em fluxo às vezes engasgam ao andar na masmorra (a v0.4.0 já deixa de cortar a melodia nos efeitos de ruído, mas falta confirmar e ajustar).
+- ⚠️ **Música ainda precisa de refinamento:** as músicas longas em fluxo às vezes engasgam ao andar na masmorra (já deixam de ser cortadas pelos efeitos de ruído e o andamento foi corrigido, mas falta confirmar e ajustar).
 - ⚡ **Desempenho (v0.3.0):** passo no mundo ≈ 0,3 s e na masmorra ≈ 0,55 s (era ≈ 1,3 s na v0.1); troca de páginas na masmorra e texto escrito direto na VRAM.
 - ⏳ **Não testados:** 60 Hz com o jogo rodando, hardware real. O joystick foi removido: o jogo é só de teclado.
 - 🔧 **Melhorias previstas:** perfil por função do 3D, memória do programa quase esgotada (veja o outline), percussão na música, porte para PC em Go.
