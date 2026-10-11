@@ -105,6 +105,7 @@ void gfx_panel(u16 x, u16 y, u16 w, u16 h);				// framed panel
 void gfx_page(const c8* title);							// full-screen decorated page
 void gfx_draw_dungeon(void);
 void gfx_draw_overworld(void);
+void gfx_target_front(bool on);
 void gfx_text_big(u16 x, u16 y, const c8* s, u8 scale, u8 color);
 void gfx_restore_palette(void);
 void gfx_flicker(u8 phase);

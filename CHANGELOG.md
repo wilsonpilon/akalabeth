@@ -13,6 +13,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em 
   - Motor de som com sombra dos registradores do PSG: só escreve o que mudou.
 - Perfil por fase do turno (`g_tparts`) para depuração.
 
+### Corrigido
+- Título: o logotipo grande "AKALABETH" e "WORLD OF DOOM" não apareciam (eram desenhados na página oculta depois da troca de páginas). O texto agora é desenhado na página exibida (`gfx_target_front`).
+
 ### Medido e verificado (11/out/2026, openMSX, MSX-DOS 2)
 - Passo no mundo **15–16 quadros** (v0.2.0: 19–20); frente na masmorra **27–28** (33–34); giro **20** (26).
 - Verificados na v0.3.0: mundo (tiles, texto, HUD), masmorra com troca de páginas e HUD duplicado, minimapa, salvar/carregar, tela de morte e tela da missão do castelo.

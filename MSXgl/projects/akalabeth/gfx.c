@@ -211,15 +211,21 @@ void gfx_text(u16 x, u16 y, const c8* s, u8 fg, u8 bg)
 	s_tlp[3] = (fg << 4) | fg;
 	for (u8 pass = 0; pass < 2; pass++)
 	{
-		u16 addr = (y + (pass ? 256 : 0)) * 128 + ((x & 0xFFFE) >> 1);
+		u16 addr = (y + g_oy + (pass ? 256 : 0)) * 128 + ((x & 0xFFFE) >> 1);
 		for (const c8* p = s; *p; p++, addr += 3)
 		{
 			s_tg = g_Font_MGL_Sample6 + 4 + (u8)*p * 8;
 			s_ta = addr;
 			blit_glyph();
 		}
-		if (y < VIEW_H) break;							// HUD rows only: both pages hold the HUD
+		if (y < VIEW_H || g_oy) break;					// HUD rows only: both pages hold the HUD
 	}
+}
+
+// Drawing target: the page being displayed (on = TRUE) or the default (page 0, HUD on both pages)
+void gfx_target_front(bool on)
+{
+	g_oy = (on && s_front) ? 256 : 0;
 }
 
 static u8 slen(const c8* s) { u8 n = 0; while (s[n]) n++; return n; }

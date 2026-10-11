@@ -1161,9 +1161,11 @@ static bool title_screen(void)
 	gfx_draw_dungeon();
 	hud_draw_static();
 	// title over the 3D view
+	gfx_target_front(TRUE);							// the 3D scene ends with page 1 on display: put the logo there
 	gfx_text_big(35, 11, "AKALABETH", 3, C_BLACK);
 	gfx_text_big(33, 9, "AKALABETH", 3, C_GOLD);
 	gfx_text_c(38, "WORLD OF DOOM", C_CREAM, C_BLACK);
+	gfx_target_front(FALSE);
 	// credits in the console area
 	gfx_rect(CON_X, CON_Y, CON_COLS * 6, CON_LINES * 8, C_NAVY);
 	gfx_text(CON_X, CON_Y, "ORIGINAL GAME", C_GOLD, C_NAVY);
