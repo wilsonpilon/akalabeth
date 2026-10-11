@@ -332,7 +332,9 @@ void snd_tick(void)
 		else s_sfxLeft--;
 		if (sf)
 		{
-			tone[0] = sf->tone; vol[0] = sf->vol; noise = sf->noise;
+			if (sf->tone) { tone[0] = sf->tone; vol[0] = sf->vol; }	// tone effects replace the melody
+			else if (sf->vol > vol[0]) vol[0] = sf->vol;				// pure noise (steps, hits): added on top, the melody keeps playing
+			noise = sf->noise;
 			if (sf->noise) mix &= ~0x08;						// noise on channel A
 		}
 	}
