@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em [SemVer](https://semver.org/).
 
+## [0.4.1] — não lançada
+
+### Removido
+- **Suporte a joystick.** O jogo é só de teclado. Sem o polling da BIOS (`GTSTCK`/`GTTRIG`) a cada quadro, some a flag `g_psgBusy` (que fazia a interrupção pular ticks da música), o laço de espera fica mais leve e o programa encolhe ~330 bytes (mais memória livre). `INPUT_USE_JOYSTICK` desligado no `msxgl_config.h`.
+
+### Corrigido
+- Música: cada nota durava 1 tick a mais (andamento ~2% lento).
+
 ## [0.4.0] — 2026-10-11
 
 > ⚠️ **A música ainda precisa de refinamento:** pode engasgar em alguns momentos (principalmente ao andar na masmorra).

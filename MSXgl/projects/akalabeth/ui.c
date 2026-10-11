@@ -232,7 +232,6 @@ static bool s_ram = FALSE;						// stream comes from the RAM store
 static Voice s_voice[3];
 static bool s_hz50 = TRUE;
 static u8 s_skip = 0;
-static volatile bool g_psgBusy = FALSE;			// set while the BIOS reads the joysticks (shares the PSG ports)
 volatile u16 g_sndTicks;						// number of interrupts handled (diagnostics)
 static u8 s_shadow[14];							// last value written to each PSG register
 
@@ -269,7 +268,6 @@ static u8 env_vol(u8 i, u8 age, u8 left)
 void snd_tick(void)
 {
 	g_sndTicks++;
-	if (g_psgBusy) return;
 	if (!s_hz50 && ++s_skip >= 6) { s_skip = 0; return; }		// keep the tempo identical on 60 Hz machines
 
 	// song start (the rings were filled by music_play)
@@ -303,7 +301,7 @@ void snd_tick(void)
 				else
 				{
 					u8 n = s_ring[i][r];
-					v->left = s_ring[i][r + 1] * sp;
+					v->left = s_ring[i][r + 1] * sp - 1;			// the loading tick counts as the first one
 					s_rd[i] = (r + 2) & (RING - 1);
 					v->age = 0;
 					v->on = (n != 0);
@@ -492,28 +490,13 @@ bool music_toggle(void) { s_musicOn = !s_musicOn; return s_musicOn; }
 volatile u8 g_keywait;			// incremented each time the game waits for a key (used by automated tests)
 
 //-----------------------------------------------------------------------------
-// Input: keyboard (BIOS buffer) + joystick ports 1 & 2 mapped to the same key codes
-static u8 s_joyPrev[2] = { 0, 0 };
-static u8 s_joyHold[2] = { 0, 0 };
-static bool s_trgPrev[4] = { FALSE, FALSE, FALSE, FALSE };
+// Input: keyboard only (BIOS buffer). The joystick was removed: its BIOS polling shares the PSG ports and cost time every frame.
 
 void ui_init(void)
 {
 	g_keywait = 0;
 	snd_init();
 	for (u8 i = 0; i < 12; i++) rnd16();
-}
-
-static u8 dir_key(u8 d)
-{
-	switch (d)
-	{
-	case 1: return KEY_UP_ARROW;
-	case 3: return KEY_RIGHT_ARROW;
-	case 5: return KEY_DOWN_ARROW;
-	case 7: return KEY_LEFT_ARROW;
-	}
-	return 0;
 }
 
 // Main-ROM call through CALSLT (MSX-DOS has RAM in page 0, so direct BIOS calls are not possible)
@@ -537,8 +520,6 @@ static u8 bios_call(u8 a, u16 addr) __naked
 
 #define R_CHGMOD_ADDR	0x005F
 #define R_CHGET_ADDR	0x009F
-#define R_GTSTCK_ADDR	0x00D5
-#define R_GTTRIG_ADDR	0x00D8
 
 void ui_text_mode(void)
 {
@@ -554,26 +535,8 @@ static u8 kbd_poll(void)
 
 u8 ui_pollkey(void)
 {
-	u8 k = kbd_poll();
-	if (k) return k;
-	for (u8 p = 0; p < 2; p++)
-	{
-		u8 key = 0;
-		g_psgBusy = TRUE;
-		u8 d = bios_call(p + 1, R_GTSTCK_ADDR);
-		if (d != s_joyPrev[p]) { s_joyPrev[p] = d; s_joyHold[p] = 0; key = dir_key(d); }
-		else if (d && ++s_joyHold[p] >= 14) { s_joyHold[p] = 10; key = dir_key(d); }
-		bool a = bios_call(1 + p, R_GTTRIG_ADDR) != 0, b = bios_call(3 + p, R_GTTRIG_ADDR) != 0;
-		g_psgBusy = FALSE;
-		bool ea = a && !s_trgPrev[p], eb = b && !s_trgPrev[2 + p];
-		s_trgPrev[p] = a; s_trgPrev[2 + p] = b;
-		if (key) return key;
-		if (ea) return 13;
-		if (eb) return 'A';
-	}
-	return 0;
+	return kbd_poll();
 }
-
 
 u8 ui_getkey(void)
 {

@@ -202,7 +202,6 @@ P[8] = page(8, f'''
 <tr><td>{k('A')}</td><td>—</td><td>ataque</td></tr>
 <tr><td>{k('ESPAÇO')}</td><td colspan="2">passa o turno</td></tr></table></div>
 <div class="art" style="width:15mm;flex:none">{A.pillar(True)}</div></div>
-<p class="small center">O joystick (portas 1 e 2) faz as setas; o botão A faz ENTER e o botão B ataca.</p>
 <h2>As outras teclas</h2>
 <table><tr><th>Tecla</th><th>Efeito</th></tr>
 <tr><td>{k('ENTER')}</td><td>Entra em cidades, masmorra e castelo; sobe e desce escadas, buracos e alçapões.</td></tr>
@@ -320,7 +319,7 @@ P[15] = page(15, f'''
 <li>Sair da masmorra devolve <b>HP</b> proporcional aos monstros que você matou.</li></ol>
 <h2>Limites desta versão</h2>
 <ul><li>A <b>música</b> ainda precisa de refinamento (veja a página 14).</li>
-<li><b>Joystick</b>, máquinas de <b>60 Hz</b> e <b>hardware real</b> ainda não foram testados.</li>
+<li>O jogo é só de <b>teclado</b>. Máquinas de <b>60 Hz</b> e <b>hardware real</b> ainda não foram testados.</li>
 <li>Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.</li>
 <li>O mapa de um número da sorte é o <b>deste</b> porte; não coincide com o do original em BASIC.</li></ul>
 <h2>Versão</h2>

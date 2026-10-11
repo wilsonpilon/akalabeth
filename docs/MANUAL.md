@@ -86,7 +86,7 @@ Cada vez que você troca de andar, o andar é gerado de novo. O desenho é o mes
 
 | Tecla | Efeito |
 | --- | --- |
-| **Setas** (ou joystick) | Mundo: norte, leste, oeste, sul. Masmorra: seta para cima = frente, esquerda/direita = virar, para baixo = meia-volta. |
+| **Setas** | Mundo: norte, leste, oeste, sul. Masmorra: seta para cima = frente, esquerda/direita = virar, para baixo = meia-volta. |
 | **ENTER** | Entrar em cidade, masmorra ou castelo; usar escada ou buraco. |
 | **A** | Atacar (masmorra). |
 | **ESPAÇO** | Passar o turno. |
@@ -210,5 +210,5 @@ Cinco temas originais de 3 vozes (título, mundo, masmorra, castelo/loja e vitó
 > ⚠️ **Aviso:** a música ainda precisa de refinamento. Pode haver cortes ou engasgos em alguns momentos (principalmente ao andar na masmorra), a mixagem das 3 vozes é simples e os temas novos ainda não foram afinados. Relatos são bem-vindos.
 
 
-- O joystick ainda não foi testado em hardware real.
+- O jogo é só de **teclado**: não há suporte a joystick.
 - Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.

@@ -34,7 +34,7 @@ Livreto ilustrado em PDF (A4 paisagem, 2 páginas por folha): **[manual-msx.pdf]
 
 | Tecla | Efeito |
 | --- | --- |
-| Setas / joystick | Andar (mundo) ou frente/virar (masmorra) |
+| Setas | Andar (mundo) ou frente/virar (masmorra) |
 | ENTER | Entrar em cidade, masmorra, castelo; escadas e buracos |
 | A | Atacar · ESPAÇO passa o turno |
 | S | Status · **H ajuda** · M música · P pausa nas mensagens |
@@ -58,7 +58,7 @@ Veja **[docs/OUTLINE.md](docs/OUTLINE.md)** (arquitetura, o que foi testado, pro
 - ✅ Jogo completo e jogável de ponta a ponta no emulador (MSX-DOS 2).
 - ⚠️ **Música ainda precisa de refinamento:** na v0.4.0 as músicas longas em fluxo às vezes engasgam ao andar na masmorra (a v0.4.0 já deixa de cortar a melodia nos efeitos de ruído, mas falta confirmar e ajustar).
 - ⚡ **Desempenho (v0.3.0):** passo no mundo ≈ 0,3 s e na masmorra ≈ 0,55 s (era ≈ 1,3 s na v0.1); troca de páginas na masmorra e texto escrito direto na VRAM.
-- ⏳ **Não testados:** joystick, 60 Hz com o jogo rodando, hardware real.
+- ⏳ **Não testados:** 60 Hz com o jogo rodando, hardware real. O joystick foi removido: o jogo é só de teclado.
 - 🔧 **Melhorias previstas:** perfil por função do 3D, memória do programa quase esgotada (veja o outline), percussão na música, porte para PC em Go.
 
 ## Compilar

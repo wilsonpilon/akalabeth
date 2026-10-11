@@ -146,7 +146,7 @@
 //-----------------------------------------------------------------------------
 
 // Input module setting
-#define INPUT_USE_JOYSTICK			TRUE	// Add functions to handle joystick using I/O port
+#define INPUT_USE_JOYSTICK			FALSE	// Add functions to handle joystick using I/O port
 #define INPUT_USE_KEYBOARD			TRUE	// Add functions to handle keyboard using I/O port
 #define INPUT_USE_MOUSE				TRUE	// Add support for Mouse handling functions
 #define INPUT_USE_DETECT			TRUE	// Add feature to detect device plugged in General purpose ports

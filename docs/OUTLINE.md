@@ -38,7 +38,7 @@ E:\akalabeth\
 | --- | --- |
 | `akalabeth.c` | Estado do jogo, geração do mundo (21×21) e das masmorras (11×11, semente = nº da sorte + entrada + andar), IA dos monstros, combate, loja, castelo/missões, salvar/carregar (handles do DOS 2), título e criação de personagem, `main`. |
 | `gfx.c` | Paleta de 16 cores (de 512), primitivas com troca de páginas (R#2) e HUD duplicado nas duas páginas, **escritor de texto direto na VRAM** (`blit_glyph`, em assembly), renderizador 3D preenchido, tiles do mundo (atlas na VRAM), minimapas. |
-| `ui.c` | Console de mensagens, HUD incremental, teclado (CHGET via CALSLT) e joystick, **motor de som** na interrupção (com sombra dos registros do PSG: só escreve o que mudou), gerador aleatório (xorshift16). |
+| `ui.c` | Console de mensagens, HUD incremental, teclado (CHGET via CALSLT; sem joystick desde a v0.4.1), **motor de som** na interrupção (com sombra dos registros do PSG: só escreve o que mudou), gerador aleatório (xorshift16). |
 | `tools/gen_data.js` | Lê `basic.bas` e gera `content/data_gen.h`: polilinhas dos monstros e tabelas de perspectiva reparametrizadas de 280 para 256 px. |
 | `ramstore.c` | `rs_init` (aloca segmentos), `rs_put`/`rs_get`/`rs_to_vram` (via `rs_exec`, em assembly, que troca a página 2 pela porta 0xFE com `DI`). Fica na página 0 (módulo linkado primeiro). |
 | `tools/gen_music.js` | Notação textual (`A4:3 C#5:1 R:2`) → `content/music_gen.h` (versões curtas de reserva no código) e `content/music.seg` (músicas completas). |
@@ -131,7 +131,7 @@ Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os n�
 
 ### Não testado ainda
 
-- [ ] **Joystick** (portas 1 e 2): código existe, nunca exercitado.
+- [x] ~~Joystick~~: **removido** na v0.4.1 (jogo só de teclado).
 - [ ] **Máquina de 60 Hz** com o jogo rodando (o andamento da música a 60 Hz é só deduzido).
 - [ ] **Hardware real** e outros MSX2 (VRAM de 64 KB, outras BIOS). Só C-BIOS/NMS 8250 no emulador.
 - [ ] Opção 3 do amuleto matando um monstro (a rotina de morte foi vista com o rato, mas não com o feitiço).
@@ -142,7 +142,7 @@ Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os n�
 
 | # | Problema | Notas |
 | --- | --- | --- |
-| 1 | **A música ainda precisa de refinamento.** Na v0.3.0 estava fluida; na v0.4.0 o usuário voltou a ouvir engasgos ao andar na masmorra, na melodia. | Medido no openMSX (NMS 8250 256 KB): 50 interrupções/s estáveis, anéis nunca esvaziam (só ~40 ticks na troca de música), notas regulares (+1 tick fixo por nota, ~2% mais lento; +1 tick em ~1% por `g_psgBusy`). Causa provável corrigida: efeitos só de ruído (passo/golpe/erro) cortavam a melodia no canal A; agora somam ruído. **Não confirmado auditivamente.** Próximo: corrigir o +1 tick por nota, tirar o polling de joystick da janela do PSG, revisar volumes/envelopes e a mixagem, compor os temas com mais cuidado. |
+| 1 | **A música ainda precisa de refinamento.** Na v0.3.0 estava fluida; na v0.4.0 o usuário voltou a ouvir engasgos ao andar na masmorra, na melodia. | Medido no openMSX (NMS 8250 256 KB): 50 interrupções/s estáveis, anéis nunca esvaziam (só ~40 ticks na troca de música), notas regulares (+1 tick fixo por nota, ~2% mais lento; +1 tick em ~1% por `g_psgBusy`). Causa provável corrigida: efeitos só de ruído (passo/golpe/erro) cortavam a melodia no canal A; agora somam ruído. **Não confirmado auditivamente.** Próximo: ~~corrigir o +1 tick por nota~~ (feito na v0.4.1), ~~tirar o polling de joystick~~ (removido na v0.4.1), revisar volumes/envelopes e a mixagem, compor os temas com mais cuidado. |
 | 8 | **Memória do programa quase esgotada** (TPA até 0xDB06; sobram ≈900 bytes de pilha). | Ver "RAM mapeada e orçamento de memória". |
 | 9 | Em MSX2 de 128 KB faltam segmentos livres: sem abertura/ajuda ilustrada/vitória, músicas curtas. | Só a arte poderia caber (6 segmentos); decidir se vale um modo "só ajuda". |
 | 2 | Passo na masmorra ainda leva ~0,55 s. | O que sobra é o desenho do 3D (CPU: cálculo e comandos do VDP). Falta um perfil por função (usar `out/*.sym`, que inclui as `static`). |
@@ -167,10 +167,10 @@ Instrumentar primeiro: contador de ticks pulados por `g_psgBusy`, duração máx
 ## 4. Roadmap sugerido
 
 **Próxima sessão (curto prazo)**
-1. **Refinar a música** (ver problema 1): confirmar o corte da melodia, corrigir o +1 tick por nota, polling de joystick fora da janela do PSG, envelopes/mixagem, percussão. Instrumentar anéis vazios (contador de subexecução).
+1. **Refinar a música** (ver problema 1): confirmar o corte da melodia, envelopes/mixagem, percussão (o +1 tick por nota e o polling de joystick foram eliminados na v0.4.1). Instrumentar anéis vazios (contador de subexecução).
 2. **Perfil por função do 3D** (amostrar o PC e atribuir com `out/akalabeth.sym`, que traz as funções `static`) e atacar os maiores custos. O passo da masmorra ainda é ~0,55 s.
 3. Repetir a regressão completa (loja, amuleto, armadilha, mímico, ESC) na v0.3.0.
-4. Testar **joystick** e **60 Hz**; testar em MSX2 real.
+4. Testar **60 Hz**; testar em MSX2 real.
 
 **Médio prazo**
 5. ~~Usar a RAM mapeada~~ (feito na v0.4.0: abertura, ajuda, vitória, música longa). Próximo: mais telas (morte, loja com arte), compressão RLE das imagens (carga do disco), mais músicas (loja, combate).
