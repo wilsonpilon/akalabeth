@@ -207,5 +207,8 @@ Cinco temas originais de 3 vozes (título, mundo, masmorra, castelo/loja e vitó
 
 ## 13. Problemas conhecidos
 
+> ⚠️ **Aviso:** a música ainda precisa de refinamento. Pode haver cortes ou engasgos em alguns momentos (principalmente ao andar na masmorra), a mixagem das 3 vozes é simples e os temas novos ainda não foram afinados. Relatos são bem-vindos.
+
+
 - O joystick ainda não foi testado em hardware real.
 - Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.

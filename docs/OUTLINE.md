@@ -142,7 +142,7 @@ Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os n�
 
 | # | Problema | Notas |
 | --- | --- | --- |
-| 1 | ~~A música às vezes "pica".~~ | **Resolvido na v0.3.0** segundo o usuário ("a música fluiu bem"). Reavaliar com as músicas em fluxo da v0.4.0 (o anel esvazia se o laço principal ficar >2,5 s sem chamar `music_pump`). |
+| 1 | **A música ainda precisa de refinamento.** Na v0.3.0 estava fluida; na v0.4.0 o usuário voltou a ouvir engasgos ao andar na masmorra, na melodia. | Medido no openMSX (NMS 8250 256 KB): 50 interrupções/s estáveis, anéis nunca esvaziam (só ~40 ticks na troca de música), notas regulares (+1 tick fixo por nota, ~2% mais lento; +1 tick em ~1% por `g_psgBusy`). Causa provável corrigida: efeitos só de ruído (passo/golpe/erro) cortavam a melodia no canal A; agora somam ruído. **Não confirmado auditivamente.** Próximo: corrigir o +1 tick por nota, tirar o polling de joystick da janela do PSG, revisar volumes/envelopes e a mixagem, compor os temas com mais cuidado. |
 | 8 | **Memória do programa quase esgotada** (TPA até 0xDB06; sobram ≈900 bytes de pilha). | Ver "RAM mapeada e orçamento de memória". |
 | 9 | Em MSX2 de 128 KB faltam segmentos livres: sem abertura/ajuda ilustrada/vitória, músicas curtas. | Só a arte poderia caber (6 segmentos); decidir se vale um modo "só ajuda". |
 | 2 | Passo na masmorra ainda leva ~0,55 s. | O que sobra é o desenho do 3D (CPU: cálculo e comandos do VDP). Falta um perfil por função (usar `out/*.sym`, que inclui as `static`). |
@@ -167,7 +167,7 @@ Instrumentar primeiro: contador de ticks pulados por `g_psgBusy`, duração máx
 ## 4. Roadmap sugerido
 
 **Próxima sessão (curto prazo)**
-1. Confirmar no uso real (e no hardware) que as músicas longas em fluxo não engasgam; instrumentar anéis vazios (contador de subexecução).
+1. **Refinar a música** (ver problema 1): confirmar o corte da melodia, corrigir o +1 tick por nota, polling de joystick fora da janela do PSG, envelopes/mixagem, percussão. Instrumentar anéis vazios (contador de subexecução).
 2. **Perfil por função do 3D** (amostrar o PC e atribuir com `out/akalabeth.sym`, que traz as funções `static`) e atacar os maiores custos. O passo da masmorra ainda é ~0,55 s.
 3. Repetir a regressão completa (loja, amuleto, armadilha, mímico, ESC) na v0.3.0.
 4. Testar **joystick** e **60 Hz**; testar em MSX2 real.

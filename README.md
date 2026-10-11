@@ -14,6 +14,8 @@ with an overworld map, dungeon automap, save/load (MSX-DOS 2), PSG music and sou
 
 ## Jogar
 
+> ⚠️ **Aviso:** a música ainda precisa de refinamento. Pode haver cortes ou engasgos em alguns momentos (principalmente ao andar na masmorra), a mixagem das 3 vozes é simples e os temas novos ainda não foram afinados. Relatos são bem-vindos.
+
 Arquivos de cada release (`release/akalabeth-vX.Y.Z.zip`, anexado à release do GitHub):
 
 | Arquivo | Descrição |
@@ -53,7 +55,7 @@ Veja **[docs/OUTLINE.md](docs/OUTLINE.md)** (arquitetura, o que foi testado, pro
 [CHANGELOG](CHANGELOG.md). Resumo:
 
 - ✅ Jogo completo e jogável de ponta a ponta no emulador (MSX-DOS 2).
-- ✅ A música deixou de engasgar na v0.3.0 (relato do usuário); acompanhar com as músicas longas.
+- ⚠️ **Música ainda precisa de refinamento:** na v0.4.0 as músicas longas em fluxo às vezes engasgam ao andar na masmorra (a v0.4.0 já deixa de cortar a melodia nos efeitos de ruído, mas falta confirmar e ajustar).
 - ⚡ **Desempenho (v0.3.0):** passo no mundo ≈ 0,3 s e na masmorra ≈ 0,55 s (era ≈ 1,3 s na v0.1); troca de páginas na masmorra e texto escrito direto na VRAM.
 - ⏳ **Não testados:** joystick, 60 Hz com o jogo rodando, hardware real.
 - 🔧 **Melhorias previstas:** perfil por função do 3D, memória do programa quase esgotada (veja o outline), percussão na música, porte para PC em Go.

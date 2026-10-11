@@ -4,6 +4,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em 
 
 ## [0.4.0] — 2026-10-11
 
+> ⚠️ **A música ainda precisa de refinamento:** pode engasgar em alguns momentos (principalmente ao andar na masmorra).
+
 ### Adicionado
 - **Uso da RAM mapeada (256 KB) do MSX-DOS 2.** Novo módulo `ramstore` aloca segmentos de 16 KB e copia dados segmento ↔ RAM/VRAM
   com a página 2 trocada só durante a cópia (interrupções desligadas; a rotina fica na página 0). O programa ocupa as 4 páginas da CPU,
