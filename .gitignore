@@ -24,3 +24,8 @@ Thumbs.db
 
 # intermediarios dos geradores de assets
 /MSXgl/projects/akalabeth/content/*.seg
+
+# manual original (direitos autorais) e HTML gerado do livreto
+/docs/original-manual.pdf
+/docs/manual-msx/*.html
+/docs/manual-msx/__pycache__/

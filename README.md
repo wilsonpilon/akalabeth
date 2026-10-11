@@ -30,6 +30,7 @@ openmsx -machine Philips_NMS_8250 -ext msxdos2 -diska akalabeth.dsk
 
 Requisitos: MSX2 com 64 KB de VRAM e drive de disco. **Salvar/carregar e a RAM mapeada exigem MSX-DOS 2**; a abertura, a tela de vitória e as músicas completas pedem **256 KB** de RAM (com 128 KB o jogo roda normalmente, sem esses extras).
 Veja o **[manual do jogador](docs/MANUAL.md)**.
+Livreto ilustrado em PDF (A4 paisagem, 2 páginas por folha): **[manual-msx.pdf](docs/manual-msx.pdf)** para ler e **[manual-msx-impressao.pdf](docs/manual-msx-impressao.pdf)** para imprimir e dobrar.
 
 | Tecla | Efeito |
 | --- | --- |
