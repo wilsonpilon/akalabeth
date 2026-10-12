@@ -344,7 +344,7 @@ P[16] = f'''<div class="page left back"><div class="frame"></div>
 <b>JOGO ORIGINAL</b>Design e programação: Richard Garriott (Lord British)<br>
 Arte da capa do jogo e do livreto: Denis Loubet<br>
 Design do livreto e arte interna: Robin West Design<br>
-<b>VERSÃO EM MSX BASIC</b>Oscar Toledo G. (Nanochess), 2019<br>
+<b>PORTE PARA GW-BASIC</b>Oscar Toledo G. (Nanochess), 2019<br>
 <b>VERSÃO MSX2 EM SDCC / MSXGL</b>Wilson Pilon (Barney), 2026<br>
 <span class="small">Biblioteca MSXgl: Guillaume “Aoineko” Blanchard</span><br>
 <span class="small">Este livreto foi inspirado no manual original de 1980; as ilustrações são novas.</span>

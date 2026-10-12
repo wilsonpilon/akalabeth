@@ -1,6 +1,6 @@
 # Akalabeth MSX2 — Outline técnico, status e pendências
 
-**Versão atual: 0.5.0** (em desenvolvimento) (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
+**Versão atual: 0.5.0** (11/out/2026) (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
 
 > Este documento é o ponto de retomada do projeto: o que existe, como funciona, o que foi testado,
 > o que está pendente e o que melhorar. Atualize a seção **2. Onde estamos** a cada release.
@@ -92,7 +92,7 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 
 ---
 
-## 2. Onde estamos (v0.5.0, não lançada)
+## 2. Onde estamos (v0.5.0)
 
 ### Pronto e testado no emulador (openMSX, Philips NMS 8250, MSX-DOS 2)
 

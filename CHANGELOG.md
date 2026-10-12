@@ -2,7 +2,7 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em [SemVer](https://semver.org/).
 
-## [0.5.0] — não lançada
+## [0.5.0] — 2026-10-11
 
 ### Adicionado
 - **História na abertura:** depois do castelo, três telas ilustradas (A Idade de Ouro, A Era Sombria, Lord British) contam o começo da história, com texto em inglês; qualquer tecla avança e `ESC` pula. Aparecem uma vez, ao iniciar.
@@ -14,6 +14,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em 
   - Retângulos e linhas horizontais não alinhados usam HMMV (2 pixels por byte) no meio e LMMV só nas bordas de 1 pixel (LMMV custa ~3x mais por pixel).
   - Medições do VDP no openMSX: HMMV ~3,4 µs/byte e ~145 µs por comando; LMMV ~5,5 µs/pixel; LINE ~11 µs/pixel.
 - **Imagens comprimidas com RLE**: `AKALABET.DAT` caiu de 112 KB para **32 KB** (carrega bem mais rápido do disco) e as 6 telas ocupam só 2 segmentos do mapper (antes 6). O formato agora é `AKD2` (cabeçalho com o tamanho de cada segmento); a descompressão é feita por `rs_exec` direto na VRAM.
+- Créditos: "MSX2/MSXGL - BARNEY 2026" na tela de título; Wilson Pilon (Barney), 2026, no README e no livreto.
 - Versão 0.5.0.
 
 ## [0.4.1] — 2026-10-11
