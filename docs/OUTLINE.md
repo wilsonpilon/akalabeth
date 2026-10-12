@@ -1,6 +1,6 @@
 # Akalabeth MSX2 — Outline técnico, status e pendências
 
-**Versão atual: 0.4.1** (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
+**Versão atual: 0.5.0** (em desenvolvimento) (11/out/2026) · Alvo: MSX2 com 256 KB de RAM / 64 KB de VRAM e MSX-DOS 2 (roda com menos, sem os extras) · SDCC 4.6 + MSXgl
 
 > Este documento é o ponto de retomada do projeto: o que existe, como funciona, o que foi testado,
 > o que está pendente e o que melhorar. Atualize a seção **2. Onde estamos** a cada release.
@@ -74,12 +74,12 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
   `rs_exec` roda na página 0 com `DI`, lê o segmento atual da página 2 (`GET_P2` da tabela de saltos do mapper), escreve na porta `0xFE`,
   copia (`LDIR`, `OTIR` para a VRAM) e restaura. As rotinas `PUT_Pn` do DOS **não** servem: podem reabilitar interrupções com a página trocada.
 - **TPA termina em 0xDB06** (`*(u16*)0x0006`): código + dados + pilha precisam caber em ≈55 KB. Na v0.4.0 sobravam ≈900 bytes de pilha; na v0.4.1 sobram ≈3,4 KB (tabela `g_Div88` removida), mas os cheats e novos recursos vão consumindo.
-  Por isso o salvar/carregar não usa buffer, o `AKALABET.DAT` é lido por um buffer de 256 bytes emprestado do mapa do mundo (ainda vazio na partida) e os anéis de música têm 32 bytes por voz.
+  Por isso o salvar/carregar não usa buffer, o `AKALABET.DAT` é lido por um buffer de 256 bytes emprestado do mapa do mundo (ainda vazio na partida) e os anéis de música têm 32 bytes por voz. Na v0.5.0 a margem é de ≈1,6 KB (heap em 0xD4DD).
   **Qualquer novo dado global precisa ser compensado em outro lugar.** Candidatos: remover perfis (`g_prof`, `g_tparts`), compilar partes para tamanho, mover código frio.
 - O DOS 2 cria um **RAM disk** que consome quase todo o mapper (no NMS 8250 de 128 KB sobra 1 segmento): o `AUTOEXEC.BAT` executa `RAMDISK /D`.
   Em 128 KB mesmo sem RAM disk faltam segmentos (o jogo pede 7 + 2 de folga) e o jogo segue sem os extras.
-- **Formato do `AKALABET.DAT`:** 7 segmentos de 16 KB: 3 telas (2 segmentos cada: linhas 0–127, linhas 128–211) e o segmento de música
-  (`[n] [velocidade, off/len das 3 vozes] × n` + trilhas de pares `(nota, duração)`). Índices em `akalabeth.h` (`ART_*`, `MUS_SEG`).
+- **Formato do `AKALABET.DAT` (`AKD2`, v0.5.0):** cabeçalho `AKD2`, `n` e `n` × u16 (bytes usados de cada segmento de 16 KB), depois os segmentos; o **último** é o de música
+  (`[n] [velocidade, off/len das 3 vozes] × n` + trilhas de pares `(nota, duração)`; índice em `g_musSeg`). Os primeiros guardam as telas **comprimidas com RLE** (0..127 = literais, 128..255 = repetição), com um diretório `{segmento, offset, tamanho}` no início do segmento 0 (índices `ART_*` em `akalabeth.h`). `rs_rle_vram` descompacta direto na VRAM. Gerado por `tools/gen_art.js`, `gen_music.js` e `gen_dat.js` (`tools/gen_assets.sh`).
 - **Música em fluxo:** a interrupção lê pares (nota, duração) de 3 anéis de 32 bytes; `music_pump` (chamada em `ui_sfx_update`, nos laços de espera) reabastece
   do segmento (ou da trilha curta embutida, sem mapper). Anel vazio = pausa de 1 tick, sem travar.
 
@@ -92,7 +92,7 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 
 ---
 
-## 2. Onde estamos (v0.4.1)
+## 2. Onde estamos (v0.5.0, não lançada)
 
 ### Pronto e testado no emulador (openMSX, Philips NMS 8250, MSX-DOS 2)
 
@@ -117,6 +117,8 @@ caem em página 0, linhas 212–255 (onde está o atlas), os **sprites são desa
 | Passo na masmorra (frente) | 62–70 | 33–34 | **27–28** (≈0,55 s) |
 | Virar na masmorra | 62 | 26 | **20** (≈0,4 s) |
 | Redesenho 3D (parte do passo) | 19–27 | 19–27 | **13–21** |
+
+**v0.5.0 (medido em 11/out/2026, mesmo cenário):** desenho 3D da masmorra ~14 → **~8,5** quadros (média) e passo completo ~20 → **~15** (≈0,3 s). Restam por passo ~1–2 quadros em `do_command`, ~2 em `end_turn` e ~2 em `prompt` (limpeza/escrita do console, em duas páginas), além do desenho.
 
 Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os números da v0.3.0 foram conferidos nesta data
 (mundo: 3 passos; masmorra: início, 2 passos em frente, giro e passo).
@@ -145,7 +147,7 @@ Medido com `g_turntime`/`g_drawtime`/`g_hudtime` e `tools/test/runtim.sh`. Os n�
 | 1 | **A música ainda precisa de refinamento.** Na v0.3.0 estava fluida; na v0.4.0 o usuário voltou a ouvir engasgos ao andar na masmorra, na melodia. | Medido no openMSX (NMS 8250 256 KB): 50 interrupções/s estáveis, anéis nunca esvaziam (só ~40 ticks na troca de música), notas regulares (+1 tick fixo por nota, ~2% mais lento; +1 tick em ~1% por `g_psgBusy`). Causa provável corrigida: efeitos só de ruído (passo/golpe/erro) cortavam a melodia no canal A; agora somam ruído. **Não confirmado auditivamente.** Próximo: ~~corrigir o +1 tick por nota~~ (feito na v0.4.1), ~~tirar o polling de joystick~~ (removido na v0.4.1), revisar volumes/envelopes e a mixagem, compor os temas com mais cuidado. |
 | 8 | **Memória do programa quase esgotada** (TPA até 0xDB06; sobram ≈900 bytes de pilha). | Ver "RAM mapeada e orçamento de memória". |
 | 9 | Em MSX2 de 128 KB faltam segmentos livres: sem abertura/ajuda ilustrada/vitória, músicas curtas. | Só a arte poderia caber (6 segmentos); decidir se vale um modo "só ajuda". |
-| 2 | Passo na masmorra ainda leva ~0,55 s. | O que sobra é o desenho do 3D (CPU: cálculo e comandos do VDP). Falta um perfil por função (usar `out/*.sym`, que inclui as `static`). |
+| 2 | Passo na masmorra leva ~0,3 s (v0.5.0). | O desenho 3D é limitado pelo **VDP** (HMMV ~3,4 µs/byte), não pela CPU: o que sobra é área pintada (piso/teto ~16 KB, paredes ~5 KB por quadro) e comandos LINE/vlines (~1 ms cada). Ideias: limpar menos do console, reduzir `end_turn`. |
 | 3 | Os tiles do mundo ficaram com 44 linhas (antes 50): a base das montanhas e das casas aparece mais curta. | Consequência de guardar o atlas na página 0 (linhas 212–255). |
 | 4 | `build.bat` do MSXgl falha na etapa do disco (`msxtar --size=720K`). | Inofensivo; use `tools/mkdisk.bat`. |
 | 5 | Os arquivos do MSX-DOS 2 no `.dsk` vêm das ferramentas do MSXgl. | Conferir licença antes de distribuir o disco. |
@@ -230,6 +232,13 @@ Só valem se o jogo foi iniciado com **TAB** (na abertura ou na tela de título;
 | Ambos | `F` / `G` / `H` | +100 de comida / +100 de ouro / +50 de HP |
 
 O mesmo número da sorte sempre gera o mesmo mundo; o castelo é único por mapa. Variáveis globais sem inicializador valem **lixo** no MSX-DOS (a RAM não é zerada): `g_cheat`/`g_cheatMap` são zeradas em `main`.
+
+### Perfilamento e testes (v0.5.0)
+
+- `AK_AUTO 1` pula abertura/título/criação (lucky 7, nível 3, lutador) e, com `AK_DEBUG` 1–8, cai direto no cenário: dispensa digitar no harness.
+- `tools/test/profsyms.py out` gera a tabela de símbolos (inclui `static`); a amostragem de PC pelo Tcl (`reg PC`) mostrou-se **enviesada** (concentrava no laço de espera); prefira os contadores `g_prof`/`g_tparts`/`g_turntime` e medidas dirigidas (benchmark de comandos do VDP em `main`).
+- Regenere `kw.tcl` (`mkkw.sh`) a cada build: endereços desatualizados fazem `until 1` disparar fora de hora.
+- Teclas por matriz no openMSX (`keymatrixdown 7 0x08` = TAB, `0x40` = SELECT, `0x80` = RET): digitar `"\r"` com `type` perde o Enter.
 
 ### Roteiro de teste no openMSX
 

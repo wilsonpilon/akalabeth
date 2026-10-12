@@ -154,5 +154,6 @@ if (process.argv[3]) {
   if (all.length > 16384) throw new Error('musica excede 16 KB');
   all.copy(seg);
   fs.writeFileSync(process.argv[3], seg);
+  fs.writeFileSync(process.argv[3].replace(/\.seg$/, '.json'), JSON.stringify({ len: all.length }));
   console.log(process.argv[3] + ':', all.length, 'bytes de 16384');
 }

@@ -13,4 +13,5 @@ bool rs_init(u8 count);						// allocates count segments; FALSE: no mapper / no 
 void rs_free(void);
 void rs_put(u8 si, u16 off, const u8* src, u16 len);			// RAM -> segment si
 void rs_get(u8 si, u16 off, u8* dst, u16 len);					// segment si -> RAM
+void rs_rle_vram(u8 si, u16 off, u16 len, u32 va);			// RLE image -> VRAM
 void rs_to_vram(u8 si, u16 off, u16 len, u32 va);				// segment si -> VRAM (len multiple of 256)

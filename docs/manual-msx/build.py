@@ -132,8 +132,9 @@ P[4] = page(4, f'''
 <ul><li><b>Disco pronto:</b> insira <b>akalabeth.dsk</b> (720 KB) no drive A: e ligue o MSX2. O jogo inicia sozinho.</li>
 <li><b>Em outro disco:</b> copie <b>AKALABET.COM</b> e <b>AKALABET.DAT</b> (juntos!) e digite <span class="key">AKALABET</span>.</li>
 <li><b>No openMSX:</b><br><span style="font-family:'VT323',monospace;font-size:10.4pt">openmsx -machine Philips_NMS_8250 -ext msxdos2 -diska akalabeth.dsk</span></li></ul>
+<p>Ao ligar você vê a abertura e três telas que contam o começo da história (qualquer tecla avança, <span class="key">ESC</span> pula).</p>
 <div class="note">Ao iniciar, o jogo lê o <b>AKALABET.DAT</b> para a memória mapeada (<i>LOADING…</i>). O <b>AUTOEXEC.BAT</b> do disco executa <span class="key">RAMDISK /D</span> antes, pois o RAM disk do DOS 2 ocupa quase toda essa memória. Em outro disco, faça o mesmo.</div>
-{shot('intro', 'A tela de abertura, pintada para esta versão.', 50)}
+{shot('intro', 'A tela de abertura, pintada para esta versão.', 40)}
 ''')
 
 # 5 -------------------------------------------------------------- primeiros passos
@@ -326,10 +327,10 @@ P[15] = page(15, f'''
 <h2>Limites desta versão</h2>
 <ul><li>A <b>música</b> ainda precisa de refinamento (veja a página 14).</li>
 <li>O jogo é só de <b>teclado</b>. Máquinas de <b>60 Hz</b> e <b>hardware real</b> ainda não foram testados.</li>
-<li>Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.</li>
+<li>Um passo na masmorra leva cerca de 0,3 s; no mundo, cerca de 0,3 s.</li>
 <li>O mapa de um número da sorte é o <b>deste</b> porte; não coincide com o do original em BASIC.</li></ul>
 <h2>Versão</h2>
-<p>Este manual acompanha a versão <b>0.4.1</b> (outubro de 2026). O projeto é de fãs, sem fins comerciais; o código está em <b>github.com/wilsonpilon/akalabeth</b>.</p>
+<p>Este manual acompanha a versão <b>0.5.0</b> (outubro de 2026). O projeto é de fãs, sem fins comerciais; o código está em <b>github.com/wilsonpilon/akalabeth</b>.</p>
 <div class="row" style="margin-top:2mm"><div class="col">{shot('death', 'A lápide.')}</div><div class="col">{shot('status-toad', 'Status (virou sapo!).')}</div></div>
 <p class="center" style="font-family:'Cinzel',serif;color:var(--acc);font-weight:700;font-size:9pt;margin-top:2mm">Que a Luz Branca guie teus passos.</p>
 ''')
@@ -347,7 +348,7 @@ Design do livreto e arte interna: Robin West Design<br>
 <b>VERSÃO MSX2 EM SDCC / MSXGL</b>Wilson Pilon, 2026<br>
 <span class="small">Biblioteca MSXgl: Guillaume “Aoineko” Blanchard</span><br>
 <span class="small">Este livreto foi inspirado no manual original de 1980; as ilustrações são novas.</span>
-<div class="small" style="margin-top:2mm">© 1980, 1981 California Pacific Computer Co. (jogo e livreto originais)<br>Projeto de fãs, sem fins comerciais · v0.4.1</div></div></div>'''
+<div class="small" style="margin-top:2mm">© 1980, 1981 California Pacific Computer Co. (jogo e livreto originais)<br>Projeto de fãs, sem fins comerciais · v0.5.0</div></div></div>'''
 
 
 def sheets_reading():

@@ -79,8 +79,18 @@ void gfx_rect(u16 x, u16 y, u16 w, u16 h, u8 c)
 {
 	if (w == 0 || h == 0) return;
 	if (!g_oy) { s_hot = TRUE; if (y >= VIEW_H) { g_oy = 256; gfx_rect(x, y, w, h, c); g_oy = 0; } }
-	if (((x | w) & 1) == 0) VDP_CommandHMMV(x, y + g_oy, w, h, c | (c << 4));	// byte aligned: fast path
-	else VDP_CommandLMMV(x, y + g_oy, w, h, c, VDP_OP_IMP);
+	u8 cc = c | (c << 4);
+	if (((x | w) & 1) == 0) { VDP_CommandHMMV(x, y + g_oy, w, h, cc); return; }	// byte aligned: fast path
+	// unaligned: LMMV (about 3x slower per pixel) only for the 1-pixel edge columns; HMMV (2 pixels per byte) for the middle
+	if (w >= 4)
+	{
+		u16 x1 = x + w;							// exclusive end
+		if (x & 1) { VDP_CommandLMMV(x, y + g_oy, 1, h, c, VDP_OP_IMP); x++; }
+		if (x1 & 1) { VDP_CommandLMMV(x1 - 1, y + g_oy, 1, h, c, VDP_OP_IMP); x1--; }
+		VDP_CommandHMMV(x, y + g_oy, x1 - x, h, cc);
+		return;
+	}
+	VDP_CommandLMMV(x, y + g_oy, w, h, c, VDP_OP_IMP);
 }
 
 void gfx_hline(i16 x0, i16 x1, i16 y, u8 c)
@@ -90,6 +100,14 @@ void gfx_hline(i16 x0, i16 x1, i16 y, u8 c)
 	if (x1 < 0 || x0 > 255 || y < 0 || y > 211) return;
 	if (x0 < 0) x0 = 0;
 	if (x1 > 255) x1 = 255;
+	if (x1 - x0 >= 11)							// long run: HMMV for the byte-aligned middle, LMMV for the (at most 1-pixel) ends
+	{
+		u8 cc = c | (c << 4);
+		if (x0 & 1) { VDP_CommandLMMV(x0, y + g_oy, 1, 1, c, VDP_OP_IMP); x0++; }
+		if (!(x1 & 1)) { VDP_CommandLMMV(x1, y + g_oy, 1, 1, c, VDP_OP_IMP); x1--; }
+		VDP_CommandHMMV(x0, y + g_oy, x1 - x0 + 1, 1, cc);
+		return;
+	}
 	VDP_CommandLMMV(x0, y + g_oy, x1 - x0 + 1, 1, c, VDP_OP_IMP);
 }
 
@@ -138,8 +156,9 @@ bool gfx_art(u8 idx)
 	show_page(0);
 	VDP_CommandWait();
 	s_hot = TRUE;
-	rs_to_vram(idx, 0, 16384, 0);
-	rs_to_vram(idx + 1, 0, 10752, 16384);
+	u8 e[5];
+	rs_get(0, 1 + 5 * idx, e, 5);							// directory: segment, offset, length
+	rs_rle_vram(e[0], e[1] | (e[2] << 8), e[3] | (e[4] << 8), 0);
 	return TRUE;
 }
 
@@ -627,8 +646,8 @@ void gfx_draw_dungeon(void)
 		if (t == 1 || t == 3 || t == 4) break;
 	}
 
-	// background
-	gfx_rect(0, 0, 256, VIEW_H, C_BLACK);
+	// no background clear: the ceiling/floor strips, side walls and front wall cover the whole view (checked on 30 scenes with a test
+	// colour), so the 20 KB fill that used to start every frame (~3 frames of VDP time) is gone
 	g_prof[0] = g_JIFFY - tp; tp = g_JIFFY;
 
 	for (i8 k = n; k >= 0; k--)

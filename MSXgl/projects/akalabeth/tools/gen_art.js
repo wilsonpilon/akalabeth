@@ -1,6 +1,5 @@
-// Gera content/AKALABET.DAT: telas pixel art (SCREEN 5, 256x212, paleta do jogo) para a RAM mapeada.
-// Cada tela = 2 segmentos de 16 KB (linhas 0..127, linhas 128..211 + preenchimento). Ordem: INTRO, HELP, OUTRO.
-// Uso: node tools/gen_art.js content/AKALABET.DAT [prefixo.png-dir-opcional]
+// Gera content/art.seg (+ art.json): telas pixel art (SCREEN 5, 256x212, paleta do jogo) comprimidas com RLE, em segmentos de 16 KB.
+// Ordem: INTRO, HELP, OUTRO, STORY1..3 (ver ART_* em akalabeth.h). Uso: node tools/gen_art.js content/art.seg [dir-png-opcional]
 const fs = require('fs');
 const W = 256, H = 212;
 // indices da paleta (ver akalabeth.h)
@@ -184,19 +183,111 @@ function outro() {
 }
 
 //-----------------------------------------------------------------------------
-const out = process.argv[2];
-if (!out) { console.error('uso: node gen_art.js saida.dat [dir-ppm]'); process.exit(1); }
-const imgs = [['intro', intro()], ['help', help()], ['outro', outro()]];
-const bufs = [];
-for (const [name, im] of imgs) {
-  const raw = im.pack();                                         // 27136 bytes
-  const a = Buffer.alloc(16384), b = Buffer.alloc(16384);
-  raw.copy(a, 0, 0, 16384); raw.copy(b, 0, 16384, raw.length);
-  bufs.push(a, b);
-  
+// Telas de historia (abertura): faixa de titulo (0..22), figura (24..142), faixa de texto (143..211)
+function storyFrame(im) {
+  im.rect(0, 0, W, 23, K); im.rect(0, 23, W, 1, GOLD);
+  im.rect(0, 143, W, 69, K); im.rect(0, 142, W, 1, WOOD); im.rect(0, 143, W, 1, GOLD);
 }
-fs.writeFileSync(out, Buffer.concat(bufs));
-console.log(`${out}: ${bufs.length} segmentos, ${bufs.length * 16} KB`);
+function story1() { // a Idade de Ouro
+  const im = new Img(); seed = 21;
+  im.grad(24, 96, BLUE, CREAM);
+  im.disc(196, 56, 15, GOLD); im.disc(196, 56, 11, WHITE);
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; im.line(196 + Math.cos(a) * 19, 56 + Math.sin(a) * 19, 196 + Math.cos(a) * 27, 56 + Math.sin(a) * 27, GOLD); }
+  for (const [x, y] of [[40, 48], [120, 40], [84, 62]]) { im.disc(x, y, 7, WHITE); im.disc(x + 9, y + 2, 6, WHITE); im.disc(x - 9, y + 2, 5, CREAM); }
+  mountains(im, 108, 26, ST2, ST3, 40);
+  im.poly([[-10, 143], [-10, 112], [60, 100], [128, 108], [200, 98], [270, 112], [270, 143]], GRASS);
+  im.poly([[-10, 143], [-10, 126], [80, 118], [170, 124], [270, 116], [270, 143]], FOREST);
+  for (let i = 0; i < 90; i++) { const x = rnd(W), y = 104 + rnd(38); if (im.get(x, y) === GRASS) im.px(x, y, rnd(3) ? FOREST : GOLD); }
+  castle(im, 128, 112, 0.5);
+  for (const [x, y] of [[40, 128], [64, 124], [200, 124], [226, 130]]) {
+    im.rect(x, y, 12, 9, ST4); im.poly([[x - 2, y], [x + 6, y - 7], [x + 14, y]], RED); im.rect(x + 5, y + 3, 3, 6, WOOD);
+  }
+  for (const [x, y] of [[20, 134], [100, 132], [160, 134], [244, 136]]) { im.rect(x, y - 2, 2, 5, WOOD); im.poly([[x - 6, y], [x + 1, y - 14], [x + 8, y]], FOREST); }
+  for (const [x, y] of [[100, 76], [112, 70], [90, 82]]) { im.line(x, y, x + 3, y - 2, WHITE); im.line(x + 3, y - 2, x + 6, y, WHITE); }
+  storyFrame(im);
+  return im;
+}
+function story2() { // a Era Sombria
+  const im = new Img(); seed = 33;
+  im.grad(24, 100, K, CEIL);
+  im.disc(214, 52, 14, RED); im.disc(218, 49, 11, CEIL);
+  stars(im, 26, 80, 40);
+  mountains(im, 118, 40, ST1, CEIL, 34);
+  im.poly([[-10, 143], [-10, 122], [70, 114], [150, 120], [270, 112], [270, 143]], FLOOR);
+  for (let i = 0; i < 90; i++) { const x = rnd(W), y = 120 + rnd(22); if (im.get(x, y) === FLOOR) im.px(x, y, rnd(2) ? K : CEIL); }
+  im.poly([[80, 143], [84, 96], [100, 80], [128, 74], [156, 80], [172, 96], [176, 143]], ST1);
+  im.poly([[92, 143], [94, 102], [106, 90], [128, 86], [150, 90], [162, 102], [164, 143]], K);
+  im.disc(128, 62, 17, CREAM); im.rect(118, 74, 20, 10, CREAM);
+  im.rect(118, 58, 7, 8, K); im.rect(131, 58, 7, 8, K); im.poly([[125, 70], [128, 64], [131, 70]], K);
+  for (let i = 0; i < 4; i++) im.rect(119 + i * 5, 76, 3, 7, K);
+  im.rect(120, 61, 3, 3, RED); im.rect(133, 61, 3, 3, RED);
+  im.rect(104, 112, 4, 4, RED); im.rect(116, 112, 4, 4, RED); im.rect(138, 112, 4, 4, RED); im.rect(150, 112, 4, 4, RED);
+  for (const [x, y] of [[36, 60], [60, 78], [226, 84], [200, 66]]) {
+    im.poly([[x, y], [x + 6, y - 5], [x + 12, y], [x + 6, y - 2]], K); im.line(x, y, x + 12, y, CREAM);
+  }
+  im.line(40, 26, 52, 52, WHITE); im.line(52, 52, 46, 54, WHITE); im.line(46, 54, 58, 80, WHITE);
+  for (const [x, y] of [[26, 136], [50, 134], [206, 136], [232, 138]]) { im.rect(x, y - 12, 4, 12, CREAM); im.disc(x + 2, y - 15, 3, CREAM); im.rect(x - 3, y - 10, 10, 2, CREAM); }
+  storyFrame(im);
+  return im;
+}
+function story3() { // Lord British
+  const im = new Img(); seed = 45;
+  im.grad(24, 142, CREAM, GOLD);
+  for (let a = 0; a < 18; a++) { const ang = Math.PI * (a / 17); im.line(128, 142, Math.round(128 + Math.cos(ang) * 200), Math.round(142 - Math.sin(ang) * 200), a & 1 ? WHITE : CREAM); }
+  im.disc(128, 142, 34, GOLD); im.disc(128, 142, 28, WHITE);
+  im.poly([[44, 143], [48, 118], [78, 106], [178, 106], [208, 118], [212, 143]], BLUE);
+  im.poly([[100, 106], [128, 143], [156, 106]], ST4);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) im.disc(112 + c * 6 + (r & 1) * 3, 114 + r * 6, 1, ST2);
+  im.poly([[86, 52], [84, 92], [96, 110], [160, 110], [172, 92], [170, 52]], ST4);
+  im.disc(128, 74, 25, CREAM);
+  im.poly([[104, 82], [108, 100], [128, 108], [148, 100], [152, 82], [140, 92], [116, 92]], WOOD);
+  im.rect(112, 66, 10, 3, WOOD); im.rect(134, 66, 10, 3, WOOD); im.rect(115, 70, 4, 3, K); im.rect(137, 70, 4, 3, K);
+  im.rect(126, 72, 3, 10, ST4); im.rect(122, 86, 12, 2, RED);
+  im.poly([[100, 52], [104, 34], [114, 44], [128, 28], [142, 44], [152, 34], [156, 52]], GOLD); im.rect(100, 50, 56, 4, GOLD);
+  im.rect(126, 32, 4, 4, RED); im.rect(108, 42, 3, 3, RED); im.rect(145, 42, 3, 3, RED);
+  im.rect(190, 52, 3, 92, WOOD); im.poly([[184, 52], [191, 30], [199, 52]], GOLD);
+  for (const x of [28, 224]) { im.rect(x, 30, 2, 40, ST3); im.poly([[x + 2, 30], [x + 22, 38], [x + 2, 48]], x < 100 ? RED : BLUE); }
+  storyFrame(im);
+  return im;
+}
+
+//-----------------------------------------------------------------------------
+// RLE por byte: 0..127 = literal (n+1 bytes); 128..255 = repeticao ((b&127)+1 vezes o proximo byte)
+function rle(b) {
+  const out = []; let i = 0; const n = b.length;
+  while (i < n) {
+    let j = i; while (j + 1 < n && b[j + 1] === b[i] && j - i < 127) j++;
+    const run = j - i + 1;
+    if (run >= 3) { out.push(0x80 | (run - 1), b[i]); i = j + 1; continue; }
+    const lit = []; let k = i;
+    while (k < n && lit.length < 128) { if (k + 2 < n && b[k] === b[k + 1] && b[k + 1] === b[k + 2]) break; lit.push(b[k]); k++; }
+    if (!lit.length) { lit.push(b[i]); k = i + 1; }
+    out.push(lit.length - 1, ...lit); i = k;
+  }
+  return Buffer.from(out);
+}
+
+const out = process.argv[2];
+if (!out) { console.error('uso: node gen_art.js art.seg [dir-png]'); process.exit(1); }
+// ordem = ART_* em akalabeth.h
+const imgs = [['intro', intro()], ['help', help()], ['outro', outro()], ['story1', story1()], ['story2', story2()], ['story3', story3()]];
+const comp = imgs.map(([n, im]) => ({ name: n, data: rle(im.pack()) }));
+// segmentos de 16 KB: diretorio ([n] + n x {seg, off, len}) no inicio do segmento 0; imagens empacotadas sem atravessar segmentos
+const SEG = 16384;
+const segs = [Buffer.alloc(SEG)]; const used = [1 + 5 * comp.length];
+const dir = [comp.length];
+for (const c of comp) {
+  if (c.data.length > SEG) throw new Error('imagem maior que um segmento');
+  let s = segs.length - 1;
+  if (used[s] + c.data.length > SEG) { segs.push(Buffer.alloc(SEG)); used.push(0); s++; }
+  c.data.copy(segs[s], used[s]);
+  dir.push(s, used[s] & 255, used[s] >> 8, c.data.length & 255, c.data.length >> 8);
+  used[s] += c.data.length;
+}
+Buffer.from(dir).copy(segs[0], 0);
+fs.writeFileSync(out, Buffer.concat(segs));
+fs.writeFileSync(out.replace(/\.seg$/, '.json'), JSON.stringify({ lens: used }));
+console.log(`${out}: ${comp.map(c => c.name + ' ' + c.data.length).join(', ')} -> ${segs.length} segmentos (usado: ${used.join(', ')})`);
 
 // previa em PNG (x3 horizontal nao: 1:1) para conferir
 if (process.argv[3]) {

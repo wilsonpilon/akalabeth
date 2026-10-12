@@ -10,7 +10,7 @@
 #include "dos_mapper.h"
 #include "ramstore.h"
 
-enum { RS_PUT = 0, RS_GET = 1, RS_VRAM = 2 };
+enum { RS_PUT = 0, RS_GET = 1, RS_VRAM = 2, RS_RLE = 3 };
 
 static u8  s_rsSeg[RS_SEGS];			// mapper segment numbers
 static u8  s_rsSlot;					// slot of the mapper that supplied them
@@ -47,6 +47,8 @@ static void rs_exec(void) __naked
 		jr		z, rs_put
 		dec		a
 		jr		z, rs_get
+		dec		a							; 0 = raw to VRAM, 1 = RLE to VRAM
+		ld		e, a
 		ld		a, (_g_rsVh)				; VRAM write address (17 bit)
 		out		(#0x99), a
 		ld		a, #0x8E
@@ -57,6 +59,9 @@ static void rs_exec(void) __naked
 		and		a, #0x3F
 		or		a, #0x40
 		out		(#0x99), a
+		ld		a, e
+		or		a, a
+		jr		nz, rs_rle
 		ld		a, b						; len is a multiple of 256
 		ld		d, a
 		ld		c, #0x98
@@ -66,6 +71,40 @@ static void rs_exec(void) __naked
 		dec		d
 		jr		nz, rs_v1
 		jr		rs_done
+	rs_rle:									; RLE: 0..127 = n+1 literals, 128..255 = (n&127)+1 copies of the next byte
+		ld		d, b
+		ld		e, c						; DE = bytes left in the segment
+		ld		c, #0x98
+	rl_next:
+		ld		a, d
+		or		a, e
+		jr		z, rs_done
+		ld		a, (hl)
+		inc		hl
+		dec		de
+		bit		7, a
+		jr		nz, rl_run
+		inc		a
+		ld		b, a
+		ld		a, e
+		sub		a, b
+		ld		e, a
+		jr		nc, rl_lit
+		dec		d
+	rl_lit:
+		otir
+		jr		rl_next
+	rl_run:
+		and		a, #0x7F
+		inc		a
+		ld		b, a
+		ld		a, (hl)
+		inc		hl
+		dec		de
+	rl_out:
+		out		(c), a
+		djnz	rl_out
+		jr		rl_next
 	rs_put:
 		ld		e, l
 		ld		d, h
@@ -111,6 +150,14 @@ void rs_to_vram(u8 si, u16 off, u16 len, u32 va)
 	g_rsVh = (u8)(va >> 14);
 	g_rsVa = (u16)(va & 0x3FFF);
 	rs_call(RS_VRAM, si, off, len);
+}
+
+// RLE-compressed image (len bytes at segment si, offset off) decoded straight into VRAM
+void rs_rle_vram(u8 si, u16 off, u16 len, u32 va)
+{
+	g_rsVh = (u8)(va >> 14);
+	g_rsVa = (u16)(va & 0x3FFF);
+	rs_call(RS_RLE, si, off, len);
 }
 
 bool rs_init(u8 count)

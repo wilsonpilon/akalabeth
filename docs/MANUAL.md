@@ -1,4 +1,4 @@
-# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.4.1)
+# AKALABETH — World of Doom · Manual do jogador (MSX2, v0.5.0)
 
 ![Título](images/title.png)
 
@@ -22,7 +22,7 @@ As regras são as do original; a apresentação (cores, música, minimapa, salva
 - **Requisitos:** MSX2, 64 KB de VRAM, drive de disco. **Salvar/carregar e a RAM mapeada exigem MSX-DOS 2**; no MSX-DOS 1 essas teclas avisam "NEEDS MSX-DOS 2". As telas extras e as músicas completas pedem **256 KB** de RAM: no início o jogo lê o `AKALABET.DAT` (`LOADING...`) para a memória mapeada. Com 128 KB ou menos ele roda sem esses extras.
 - O `AUTOEXEC.BAT` do disco apaga o RAM disk do DOS 2 (`RAMDISK /D`) para liberar a memória; se você usa o `.COM` num disco seu e o RAM disk está ativo, faça o mesmo antes de iniciar o jogo.
 
-Na abertura, qualquer tecla segue para o título. No título, qualquer tecla começa um jogo novo, **L** carrega o jogo salvo e **H** abre a ajuda.
+Na abertura, qualquer tecla segue para três telas que contam o começo da história (`ESC` pula); depois vem o título. No título, qualquer tecla começa um jogo novo, **L** carrega o jogo salvo e **H** abre a ajuda.
 
 ## 3. Criando o personagem
 
@@ -221,4 +221,4 @@ Cinco temas originais de 3 vozes (título, mundo, masmorra, castelo/loja e vitó
 
 
 - O jogo é só de **teclado**: não há suporte a joystick.
-- Um passo na masmorra leva cerca de 0,55 s; no mundo, cerca de 0,3 s.
+- Um passo na masmorra leva cerca de 0,3 s; no mundo, cerca de 0,3 s.

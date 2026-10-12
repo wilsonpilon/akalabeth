@@ -9,10 +9,12 @@
 #include "msxgl.h"
 #include "ramstore.h"
 
-#define AK_VERSION		"0.4.1"
+
+#define AK_VERSION		"0.5.0"
 
 // Debug start: begin directly in dungeon level 1 with a rat in front (test builds only)
 #define AK_DEBUG		0
+#define AK_AUTO			0			// test builds: skip intro, title and character creation (lucky 7, level 3, fighter)
 
 //-----------------------------------------------------------------------------
 // Palette (SCREEN 5, 16 entries)
@@ -38,7 +40,9 @@ enum
 
 //-----------------------------------------------------------------------------
 // RAM store: AKALABET.DAT = 16 KB segments; each picture takes two (rows 0..127, rows 128..211)
-enum { ART_INTRO = 0, ART_HELP = 2, ART_OUTRO = 4, MUS_SEG = 6, ART_SEGS = 7 };	// MUS_SEG: all songs (see tools/gen_music.js)
+enum { ART_INTRO = 0, ART_HELP, ART_OUTRO, ART_STORY1, ART_STORY2, ART_STORY3 };	// picture index (directory in segment 0, see tools/gen_art.js)
+extern u8 g_musSeg;								// segment holding all songs (the last one in AKALABET.DAT)
+#define MUS_SEG		g_musSeg
 
 //-----------------------------------------------------------------------------
 // Geometry

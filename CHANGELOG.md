@@ -2,6 +2,20 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/). Versões em [SemVer](https://semver.org/).
 
+## [0.5.0] — não lançada
+
+### Adicionado
+- **História na abertura:** depois do castelo, três telas ilustradas (A Idade de Ouro, A Era Sombria, Lord British) contam o começo da história, com texto em inglês; qualquer tecla avança e `ESC` pula. Aparecem uma vez, ao iniciar.
+- Modo de teste `AK_AUTO` (pula abertura, título e criação do personagem) e `tools/test/profsyms.py` (amostragem de PC com símbolos, inclusive `static`).
+
+### Alterado
+- **Desempenho da masmorra** (medido no openMSX; quadros de 20 ms): desenho 3D de **~14 para ~8,5 quadros** em média e passo completo de **~20 para ~15 quadros (~0,3 s)**.
+  - Sem o preenchimento de fundo de 20 KB no começo de cada quadro (teto, piso e paredes já cobrem tudo; verificado em 30 cenas com cor de teste).
+  - Retângulos e linhas horizontais não alinhados usam HMMV (2 pixels por byte) no meio e LMMV só nas bordas de 1 pixel (LMMV custa ~3x mais por pixel).
+  - Medições do VDP no openMSX: HMMV ~3,4 µs/byte e ~145 µs por comando; LMMV ~5,5 µs/pixel; LINE ~11 µs/pixel.
+- **Imagens comprimidas com RLE**: `AKALABET.DAT` caiu de 112 KB para **32 KB** (carrega bem mais rápido do disco) e as 6 telas ocupam só 2 segmentos do mapper (antes 6). O formato agora é `AKD2` (cabeçalho com o tamanho de cada segmento); a descompressão é feita por `rs_exec` direto na VRAM.
+- Versão 0.5.0.
+
 ## [0.4.1] — 2026-10-11
 
 ### Alterado

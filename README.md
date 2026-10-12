@@ -1,6 +1,6 @@
 # AKALABETH — World of Doom (MSX2 / MSX-DOS 2)
 
-**v0.4.1** · porte do clássico RPG de masmorras de 1979 para **MSX2**, em C com **SDCC + MSXgl**,
+**v0.5.0** · porte do clássico RPG de masmorras de 1979 para **MSX2**, em C com **SDCC + MSXgl**,
 como programa `.COM` do MSX-DOS 2 (SCREEN 5, 256×212, paleta própria de 16 cores, música e efeitos pelo PSG).
 
 *English: a faithful but colourful MSX2 port of Richard Garriott's 1979 Akalabeth (3D wireframe dungeons rebuilt as filled, shaded views),
@@ -44,7 +44,7 @@ Livreto ilustrado em PDF (A4 paisagem, 2 páginas por folha): **[manual-msx.pdf]
 
 - Vídeo **SCREEN 5**: paredes e pisos preenchidos e sombreados pela distância; portas, escadas, buracos e baús coloridos; monstros em linhas coloridas.
 - Mundo com tiles desenhados e **minimapa**; masmorra com **minimapa de exploração**.
-- **RAM mapeada de 256 KB** (MSX-DOS 2): telas pixel art de **abertura**, **ajuda** (`H`) e **vitória**, e **músicas de ~30–50 s** com 3 vozes (5 temas), lidas aos poucos da RAM mapeada.
+- **RAM mapeada de 256 KB** (MSX-DOS 2): telas pixel art de **abertura** com a **história** em três quadros, **ajuda** (`H`) e **vitória**, e **músicas de ~30–50 s** com 3 vozes (5 temas), lidas aos poucos da RAM mapeada.
 - **14 efeitos** pelo PSG, tocados na interrupção do VDP.
 - **Salvar e carregar** via MSX-DOS 2.
 - Telas de loja, status, castelo, cavaleiro e morte redesenhadas, com fades de paleta.
@@ -57,7 +57,7 @@ Veja **[docs/OUTLINE.md](docs/OUTLINE.md)** (arquitetura, o que foi testado, pro
 
 - ✅ Jogo completo e jogável de ponta a ponta no emulador (MSX-DOS 2).
 - ⚠️ **Música ainda precisa de refinamento:** as músicas longas em fluxo às vezes engasgam ao andar na masmorra (já deixam de ser cortadas pelos efeitos de ruído e o andamento foi corrigido, mas falta confirmar e ajustar).
-- ⚡ **Desempenho (v0.3.0):** passo no mundo ≈ 0,3 s e na masmorra ≈ 0,55 s (era ≈ 1,3 s na v0.1); troca de páginas na masmorra e texto escrito direto na VRAM.
+- ⚡ **Desempenho (v0.5.0):** passo no mundo ≈ 0,3 s e na masmorra ≈ 0,3 s (era ≈ 1,3 s na v0.1); troca de páginas na masmorra e texto escrito direto na VRAM.
 - ⏳ **Não testados:** 60 Hz com o jogo rodando, hardware real. O joystick foi removido: o jogo é só de teclado.
 - 🔧 **Melhorias previstas:** perfil por função do 3D, memória do programa quase esgotada (veja o outline), percussão na música, porte para PC em Go.
 

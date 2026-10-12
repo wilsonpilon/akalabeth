@@ -283,21 +283,69 @@ static u8 mem_copy(void* dst, const void* src, u16 n)
 #define ASSET_FILE		"AKALABET.DAT"
 #define ABUF_SIZE		256
 
+u8 g_musSeg;
+
+// File: "AKD2", nseg, nseg x u16 (bytes used in each 16 KB segment), then the segments' bytes; the last segment holds the music
 static void assets_load(void)
 {
-	if (!dos_is_2() || !rs_init(ART_SEGS)) return;
+	if (!dos_is_2()) return;
 	u8* abuf = &g_te[0][0];							// RAM is tight (TPA ends at 0xDB06): the world map is still unused at start-up
 	u8 h = DOS_OpenHandle(ASSET_FILE, O_RDONLY);
-	if (h == HANDLE_INVALID) { rs_free(); return; }
+	if (h == HANDLE_INVALID) return;
+	if (DOS_ReadHandle(h, abuf, 5) != 5 || abuf[0] != 'A' || abuf[1] != 'K' || abuf[2] != 'D' || abuf[3] != '2') { DOS_CloseHandle(h); return; }
+	u8 n = abuf[4];
+	u16* lens = (u16*)(abuf + 300);
+	if (n == 0 || n > 12 || DOS_ReadHandle(h, lens, n * 2) != n * 2 || !rs_init(n)) { DOS_CloseHandle(h); return; }
 	gfx_text_c(100, "LOADING...", C_CREAM, C_BLACK);
-	for (u8 s = 0; s < ART_SEGS; s++)
-		for (u8 c = 0; c < RS_SEG_BYTES / ABUF_SIZE; c++)
+	for (u8 s = 0; s < n; s++)
+		for (u16 off = 0; off < lens[s]; off += ABUF_SIZE)
 		{
-			if (DOS_ReadHandle(h, abuf, ABUF_SIZE) != ABUF_SIZE) { DOS_CloseHandle(h); rs_free(); return; }
-			rs_put(s, c * ABUF_SIZE, abuf, ABUF_SIZE);
+			u16 c = lens[s] - off;
+			if (c > ABUF_SIZE) c = ABUF_SIZE;
+			if (DOS_ReadHandle(h, abuf, c) != c) { DOS_CloseHandle(h); rs_free(); return; }
+			rs_put(s, off, abuf, c);
 		}
 	DOS_CloseHandle(h);
-	for (u16 i = 0; i < ABUF_SIZE; i++) abuf[i] = 0;
+	g_musSeg = n - 1;
+	for (u16 i = 0; i < 340; i++) abuf[i] = 0;
+}
+
+// Opening story (three pictures with text), shown once at start; ESC skips it
+static const c8* const k_story[3][7] =
+{
+	{ "THE GOLDEN AGE",
+	  "LONG AGO, PEACE AND PLENTY COVERED",
+	  "THE LANDS OF AKALABETH. FOOD AND",
+	  "DRINK FLOWED FREELY, GOLD AND",
+	  "SILVER ABOUNDED, AND MAN AND BEAST",
+	  "LIVED IN HARMONY.", 0 },
+	{ "THE DARK AGE",
+	  "THEN CAME MONDAIN, WHO COVETED HIS",
+	  "BROTHER'S INHERITANCE. HE DUG DEEP",
+	  "DUNGEONS AND FILLED THEM WITH",
+	  "THIEVES, SKELETONS, DAEMONS AND",
+	  "BALROGS. PESTILENCE SPREAD.", 0 },
+	{ "LORD BRITISH",
+	  "A PURE AND JUST MAN ROSE: BRITISH,",
+	  "CHAMPION OF THE WHITE LIGHT. HE",
+	  "DROVE MONDAIN OUT OF AKALABETH AND",
+	  "WAS PROCLAIMED LORD BRITISH.",
+	  "RID THE LAND OF ITS FOUL CREATURES!", 0 },
+};
+
+static void story_screens(void)
+{
+	if (!g_rsOk) return;
+	for (u8 p = 0; p < 3; p++)
+	{
+		fade_out();
+		gfx_art(ART_STORY1 + p);
+		gfx_text_c(8, k_story[p][0], C_GOLD, C_BLACK);
+		for (u8 i = 1; i < 6; i++) gfx_text_c(147 + (i - 1) * 10, k_story[p][i], i == 5 && p == 2 ? C_GOLD : C_CREAM, C_BLACK);
+		gfx_text_c(200, "PRESS ANY KEY", C_ST4, C_BLACK);
+		fade_in();
+		if (ui_getkey() == 27) break;
+	}
 }
 
 static void intro_screen(void)
@@ -1333,6 +1381,9 @@ again:
 static void create_character(void)
 {
 	c8 buf[8];
+#if AK_AUTO
+	s_ln = 7; g_lp = 3; rnd_seed(s_ln); for (u8 i = 0; i < 6; i++) g_stat[i] = 15; g_class = 'F'; (void)buf;
+#else
 	fade_out();
 	gfx_page("THE LEGEND BEGINS");
 	fade_in();
@@ -1374,6 +1425,7 @@ static void create_character(void)
 		if (k == 'F' || k == 'M') { g_class = k; break; }
 		ui_beep(SFX_BUMP);
 	}
+#endif
 	for (u8 i = 0; i < 6; i++) g_inv[i] = 0;
 	g_name[0] = 0;
 	s_ta = 0; s_luck = 0; s_pause = FALSE; g_in = 0;
@@ -1465,10 +1517,17 @@ void main()
 	gfx_init();
 	ui_init();
 	assets_load();
+#if !AK_AUTO
 	intro_screen();
+	story_screens();
+#endif
 	for (;;)
 	{
+#if AK_AUTO
+		create_character();
+#else
 		if (!title_screen()) create_character();
+#endif
 		game_loop();
 		if (g_stat[ST_HP] == -999) break;
 		death();
