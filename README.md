@@ -93,6 +93,6 @@ O `basic.bas` (porte GW-BASIC de Nanochess) **não** faz parte deste repositóri
 - **Jogo original:** Richard Garriott ("Lord British"), *Akalabeth: World of Doom*, Apple II, 1979.
 - **Referência de regras e dados:** porte para GW-BASIC de **Oscar Toledo G. (Nanochess)**, jan–fev/2019. Regras, textos e vetores dos monstros foram extraídos dele.
 - **Biblioteca:** [MSXgl](https://github.com/aoineko-fr/MSXgl) de Guillaume "Aoineko" Blanchard (CC BY-SA).
-- **Porte MSX2:** este projeto, com os temas musicais originais compostos para ele.
+- **Porte MSX2 (SDCC + MSXgl):** Wilson Pilon ("Barney"), 2026, com os temas musicais originais compostos para ele.
 
 Projeto de fã, sem fins comerciais. **Licença do código deste porte: a definir.** O listing de Nanochess (`basic.bas`) e os arquivos do MSX-DOS 2 incluídos no disco têm licenças próprias que devem ser confirmadas antes de redistribuir.

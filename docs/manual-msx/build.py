@@ -345,7 +345,7 @@ P[16] = f'''<div class="page left back"><div class="frame"></div>
 Arte da capa do jogo e do livreto: Denis Loubet<br>
 Design do livreto e arte interna: Robin West Design<br>
 <b>VERSÃO EM MSX BASIC</b>Oscar Toledo G. (Nanochess), 2019<br>
-<b>VERSÃO MSX2 EM SDCC / MSXGL</b>Wilson Pilon, 2026<br>
+<b>VERSÃO MSX2 EM SDCC / MSXGL</b>Wilson Pilon (Barney), 2026<br>
 <span class="small">Biblioteca MSXgl: Guillaume “Aoineko” Blanchard</span><br>
 <span class="small">Este livreto foi inspirado no manual original de 1980; as ilustrações são novas.</span>
 <div class="small" style="margin-top:2mm">© 1980, 1981 California Pacific Computer Co. (jogo e livreto originais)<br>Projeto de fãs, sem fins comerciais · v0.5.0</div></div></div>'''

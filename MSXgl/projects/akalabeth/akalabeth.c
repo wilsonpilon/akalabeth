@@ -1356,7 +1356,7 @@ again:
 	gfx_text(CON_X, CON_Y + 8, "RICHARD GARRIOTT, 1979", C_WHITE, C_NAVY);
 	gfx_text(CON_X, CON_Y + 18, "GW-BASIC PORT", C_GOLD, C_NAVY);
 	gfx_text(CON_X, CON_Y + 26, "NANOCHESS, 2019", C_WHITE, C_NAVY);
-	gfx_text(CON_X, CON_Y + 36, "MSX2 PORT: MSXGL + SDCC", C_GRASS, C_NAVY);
+	gfx_text(CON_X, CON_Y + 36, "MSX2/MSXGL - BARNEY 2026", C_GRASS, C_NAVY);
 	gfx_text(181, 169, "ANY KEY:NEW", C_CREAM, C_NAVY);
 	gfx_text(181, 178, "L: LOAD", C_GOLD, C_NAVY);
 	gfx_text(181, 187, "H: HELP", C_GRASS, C_NAVY);
